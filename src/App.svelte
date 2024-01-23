@@ -1,6 +1,7 @@
 <script lang="ts">
   import { deck, shufflePlayers, ydoc } from "./lib/sync.js";
   import Board from "./lib/Board.svelte";
+  import shuffleSeed from "knuth-shuffle-seeded";
 
   const NUM_TILES = 5;
   let tiles = [];
@@ -33,23 +34,6 @@
   //     bCommitted: false,
   // })
 
-  let playerNameInProgress = "";
-  let playerName = window.localStorage.getItem("playerName");
-  if (playerName) {
-    joinGame()
-  }
-
-  function joinGame() {
-    if (playerNameInProgress) {
-      window.localStorage.setItem("playerName", playerNameInProgress);
-      playerName = playerNameInProgress;
-    }
-    remotePlayers.set(playerName, { clues: [] });
-  }
-
-  remotePlayers.observe(syncRound);
-  remoteGuesses.observe(syncRound);
-
   let gameStatus = {
     currentRound: 0,
     phase: "cluing",
@@ -62,6 +46,31 @@
     started: false,
     guessPhase: 0,
   };
+
+  remotePlayers.observe(syncRound);
+  remoteGuesses.observe(syncRound);
+
+  let playerNameInProgress = "";
+  let playerName = window.localStorage.getItem("playerName");
+  if (playerName) {
+    playerNameInProgress = playerName;
+    joinGame()
+  }
+
+  function joinGame() {
+    console.log("Joining game", playerNameInProgress);
+    if (playerNameInProgress) {
+      window.localStorage.setItem("playerName", playerNameInProgress);
+      if (playerName) {
+        remotePlayers.delete(playerName)
+      }
+      playerName = playerNameInProgress;
+    }
+    remotePlayers.set(playerName, { clues: [] });
+    console.log("SET", playerName)
+  }
+
+
   let clues = [null, null, null, null];
   let cluesReady = false;
 
@@ -72,6 +81,7 @@
   function syncRound() {
     const players = remotePlayers.toJSON();
     const guesses = remoteGuesses.toJSON();
+    console.log("SYNC", JSON.stringify(ydoc.toJSON(), null, 2))
 
     let playerNames = shufflePlayers(Object.keys(players));
     const numPlayers = playerNames.length;
@@ -121,14 +131,18 @@
         playerBeingGuessed
       );
       nextGameStatus["playerBeingGuessed"] = playerBeingGuessed;
-
       const guessPhase = guesses[`${currentRound}/${playerBeingGuessed}`];
+      clues = players[playerBeingGuessed]?.clues[currentRound];
       console.log("Guess phase", guessPhase);
       nextGameStatus.guessPhase = guessPhase?.bCommitted
         ? 2
         : guessPhase?.aCommitted
           ? 1
           : 0;
+    } else {
+      if (gameStatus.phase === "guessing") {
+        clues = [null, null, null, null];
+      }
     }
 
     gameStatus = nextGameStatus;
@@ -169,17 +183,24 @@
   }
   function initialize(tiles, phase) {
     console.log("Initializing", tiles);
-    const guessingPositions = [
-      { x: 55, y: 470 },
+    let guessingPositions = [
+      { x: 59, y: 470 },
       { x: 185, y: 470 },
-      { x: 315, y: 470 },
-      { x: 55, y: 600 },
+      { x: 311, y: 470 },
+      { x: 59, y: 600 },
       { x: 185, y: 600 },
-      { x: 315, y: 600 },
+      { x: 311, y: 600 },
     ];
+
+    let guessingRotations = Array.from({ length: 4 }, (_,i) => -360-90*i).flatMap(v => [v,v,v,v]);
+
+    let seedNumeric = (tiles[0]?.words || []).join("").split("").reduce((acc, c) => acc + c.charCodeAt(0), 0);
+    guessingPositions = shuffleSeed(guessingPositions, seedNumeric);
+    guessingRotations = shuffleSeed(guessingRotations, seedNumeric);
+ 
     const cluingPositions = [
-      { x: 100, y: 155 },
-      { x: 270, y: 155 },
+      { x: 100, y: 130 },
+      { x: 270, y: 130 },
       { x: 100, y: 300 },
       { x: 270, y: 300 },
       { x: 0, y: 0 },
@@ -190,12 +211,15 @@
       t.position = (phase === "guessing" ? guessingPositions : cluingPositions)[
         i
       ];
+      t.angle = (phase == "guessing") ? guessingRotations[i] : 0;
     });
   }
 
+  let lastGuessingPlayer = null;
   function setPhase(cluing, guessingPlayer) {
     console.log("In hase", gameStatus);
     if (cluing) {
+      lastGuessingPlayer = null;
       remoteTiles.unobserve(syncTiles);
       remoteTiles.clear();
       const startDeckPos =
@@ -216,6 +240,7 @@
         tiles.map((t) => t.words.join(",")).join(",")
       ) {
         tiles = nextTiles;
+        boardAngle = 0;
         initialize(tiles, "cluing");
       }
 
@@ -235,15 +260,14 @@
           angle: 0,
           position: {},
         }));
-      if (
-        nextTiles.map((t) => t.words.join(",")).join(",") !==
-        tiles.map((t) => t.words.join(",")).join(",")
-      ) {
-        tiles = nextTiles;
-        remoteTiles.clear();
-        initialize(tiles, "guessing");
-      }
-      console.log("RRR guess", gameStatus, tiles);
+        if (lastGuessingPlayer !== guessingPlayer) {
+          lastGuessingPlayer = guessingPlayer;
+          tiles = nextTiles;
+          remoteTiles.clear();
+          boardAngle = 0;
+          initialize(tiles, "guessing");
+        }
+      console.log("RRR guess", gameStatus, tiles, boardAngle);
     }
   }
 
@@ -254,17 +278,20 @@
   function syncTiles(d) {
     Array.from(remoteTiles.keys()).forEach((k) => {
       if (k === "BOARD") {
+        console.log("BOARD REMOTE", remoteTiles.get("BOARD"));
         boardAngle = remoteTiles.get("BOARD").angle;
         return;
       }
       const newK = remoteTiles.get("" + k);
       let tile = tiles[parseInt(k)];
       tiles[parseInt(k)] = { ...tile, ...newK };
+      console.log("NEWK", newK)
       tiles = tiles;
     });
   }
 
   function onBoardMove() {
+    console.log("OBM", boardAngle, remoteTiles.get("BOARD")?.angle)
     const angle = remoteTiles.get("BOARD")?.angle || 0;
     remoteTiles.set("BOARD", { angle: angle - 90});
   }
@@ -273,8 +300,12 @@
     const mtime = new Date().getTime();
     let a = t.angle;
     console.log("Moved", i, t, a, mtime);
-    remoteTiles.set("" + i, { angle: a, mtime, position: t.position });
+    remoteTiles.set("" + i, { angle: a, mtime, position: t.position, moving: t.moving});
   }
+
+$: {console.log("OUT BAORD ANG", boardAngle)}
+
+
 </script>
 
 <header>
@@ -293,7 +324,7 @@
   {:else if !playerName || !gameStatus.started}
     <form on:submit|preventDefault={joinGame}>
       <input autofocus bind:value={playerNameInProgress} />
-      <button type="submit" disabled={playerName != null}>Join</button>
+      <button type="submit">Join</button>
     </form>
     <ul>
       {#each gameStatus.playerNames as p}
@@ -308,7 +339,7 @@
 </header>
 {#if gameStatus.started}
   <Board
-    boardAngle={boardAngle}
+    bind:boardAngle={boardAngle}
     round={gameStatus.currentRound}
     phase={gameStatus.phase}
     bind:box={clues}

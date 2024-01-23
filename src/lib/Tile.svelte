@@ -13,7 +13,7 @@
   let activeSquare = null;
 
   export let tile;
-  let moved = false;
+  export let moving = false;
   const rotate = () => {
     angle -= 90;
   };
@@ -29,7 +29,7 @@
 
     function startDrag(e) {
       if (!movable) return;
-      moved = false;
+      moving = false;
       activeSquare = e.target.closest(".draggable-square");
       initialX = (e.touches?.[0] || e).clientX;
       initialY = (e.touches?.[0] || e).clientY;
@@ -46,13 +46,15 @@
     function drag(e) {
       if (!activeSquare) return;
 
-      moved = true;
+      moving = true;
       e.preventDefault();
       newX = (e.touches?.[0] || e).clientX - initialX;
       newY = (e.touches?.[0] || e).clientY - initialY;
 
       position.x = initialPosition.x + newX;
       position.y = initialPosition.y + newY;
+
+      onTileMove?.()
     }
 
     function endDrag() {
@@ -62,41 +64,43 @@
       window.removeEventListener("touchend", endDrag);
       window.removeEventListener("mouseup", endDrag);
 
-      if (!moved) {
+      if (!moving) {
         return;
       }
 
-      onTileMove?.()
       setTimeout(() => {
-        moved = false;
-      }, 100);
+        moving = false;
+        onTileMove?.()
+      });
 
     }
     console.log("listening");
   });
   // increment rotation on the parent square, found by navigating up the DOM tree
   const ccw = (e) => {
-    if (moved) return false;
+    if (moving) return false;
     rotate();
     onTileMove?.()
   };
 </script>
 
-<div bind:this={tile} class="draggable-square" class:noanimate={boardMoving}
+<div bind:this={tile} class="draggable-square" class:noanimate={boardMoving} class:moving={moving}
   style:rotate={`${angle}deg`}
   style:left={`${position.x-50}px`}
   style:top={`${position.y-50}px`}
+  on:click={movable ? ccw : () => {}}
    >
   <span class="top">{words[0]}</span>
   <span class="right">{words[1]}</span>
   <span class="bottom">{words[2]}</span>
   <span class="left">{words[3]}</span>
-  {#if movable}
-  <button on:click={ccw}>🔄</button>
-  {/if}
 </div>
 
 <style>
+  .draggable-square.moving {
+    border: 2px dashed white;
+    opacity: .8;
+  }
   .draggable-square {
     width: 100px;
     height: 100px;
@@ -106,7 +110,7 @@
     align-items: center;
     border-radius: 10px;
     /* animate any rotations of this*/
-    transform: scale(1.1);
+    transform: scale(1.2);
     transition: rotate 0.3s ease;
     cursor: pointer;
     user-select: none;
@@ -114,15 +118,18 @@
     opacity: .95;
     border: 2px solid black;
     font-weight: bold;
+    font-size: 15px;
+    text-transform:capitalize;
+    font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+
   }
 
   .draggable-square .left {
     color: white;
     position: absolute;
     top: 50%;
-    left: 0;
-    transform: translateY(50px) rotate(-90deg);
-    transform-origin: 0% 0%;
+    transform: translateY(54px) rotate(-90deg);
+    transform-origin: -4px 0%;
     padding: 0px;
     width: 100px;
     text-align: center;
@@ -133,8 +140,8 @@
     position: absolute;
     top: 50%;
     right: 0;
-    transform: translateY(50px) rotate(90deg);
-    transform-origin: 100% 0%;
+    transform: translateY(54px) rotate(90deg);
+    transform-origin: 104px 0%;
     padding: 0px;
     width: 100px;
     text-align: center;
@@ -144,7 +151,7 @@
     color: white;
     position: absolute;
     right: 50%;
-    top: 0;
+    top: -4px;
     transform: translateX(50%) rotate(0deg);
     transform-origin: 0% 0;
   }
@@ -153,8 +160,7 @@
     color: white;
     position: absolute;
     right: 50%;
-    bottom: 0;
-    transform: translateX(50%) rotate(180deg);
+    transform: translateY(44px) translateX(50%) rotate(180deg);
     transform-origin: 50% 50%;
   }
 

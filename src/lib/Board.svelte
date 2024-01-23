@@ -1,6 +1,10 @@
 <script lang="ts">
+  import { afterUpdate } from 'svelte';
   import shamrock from '../assets/shamrocklite.svg'
   import Tile from "./Tile.svelte";
+
+  let board;
+  export let boardAngle = null;
 
   export let tiles = [];
   export let onTileMove;
@@ -8,14 +12,14 @@
   export let round = 0;
   export let phase;
 
-export let box = [null, null, null, null];
-function center(div) {
-    var rect = div.getBoundingClientRect();
-    return {
-      x: rect.left + rect.width / 2,
-      y: rect.top + rect.height / 2
-    }
-}
+  export let box = [null, null, null, null];
+  function center(div) {
+      var rect = div.getBoundingClientRect();
+      return {
+        x: rect.left + rect.width / 2,
+        y: rect.top + rect.height / 2
+      }
+  }
 
 
 function calculateNewCenter(targetDiv, pivotDiv) {
@@ -31,11 +35,11 @@ function calculateNewCenter(targetDiv, pivotDiv) {
     return {dx: pivotCenter.x + dy - targetCenter.x, dy: pivotCenter.y-dx - targetCenter.y}
 }
 
-let board;
-export let boardAngle = 0;
+
+$: {console.log("BAORD ANG", boardAngle)}
 
 function rotateBoard() {
-  boardAngle -= 90;
+  console.log("0CAlling OBM", boardAngle)
   tiles.forEach((t,i) => {
     console.log("TEst tile, ", t)
     if (isMoreThanHalfOverlapping(t.tile, board)) {
@@ -48,15 +52,19 @@ function rotateBoard() {
       t.position.y += after.dy;
       //t.words = t.words.slice(1).concat(t.words[0])
       t.angle -= 90;
-      t.boardMoving = true;
+      // t.boardMoving = true;
       onTileMove(i, t);
-      setTimeout(() => {
-        t.boardMoving = false;
-      }, 100);
+      // setTimeout(() => {
+      //   tiles[i].boardMoving = false;
+      // }, 100);
       tiles = tiles
     }
   })
-  onBoardMove()
+  boardAngle -= 90;
+  setTimeout(()=>{ 
+    console.log("1CAlling OBM", boardAngle)
+    onBoardMove()
+  })
 }
 
 function isMoreThanHalfOverlapping(tileDiv, boardDiv) {
@@ -94,7 +102,7 @@ style:height="373px"
 </div>
 
 {#each tiles as t, i}
-  <Tile movable={phase==="guessing"} onTileMove={() => onTileMove(i, t)} boardMoving={t.boardMoving} bind:angle={t.angle} bind:tile={t.tile} bind:position={t.position} bind:words={t.words}/>
+  <Tile movable={phase==="guessing"} onTileMove={(moving) => onTileMove(i, t)} boardMoving={t.boardMoving} bind:angle={t.angle} bind:tile={t.tile} bind:position={t.position} bind:words={t.words} bind:moving={t.moving}/>
 {/each}
 
 <style>
@@ -119,7 +127,7 @@ style:height="373px"
   }
   div.board {
     top: 30px;
-
+    user-select: none;
   }
 
   div.rboard {

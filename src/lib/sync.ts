@@ -75,8 +75,6 @@ window.example = { provider, ydoc, };
 export const  deck = await makeDeck(documentGuid, cards);
 async function makeDeck(documentGuid: string, cards: string[][]) {
   let digest = new Uint8Array(
-    // TODO fixme
-    [1,2,3] ||
     await crypto.subtle.digest(
       "SHA-256",
       new TextEncoder().encode(documentGuid),
