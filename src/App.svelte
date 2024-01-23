@@ -240,6 +240,7 @@
         tiles.map((t) => t.words.join(",")).join(",")
       ) {
         tiles = nextTiles;
+        remoteTiles.clear();
         initialize(tiles, "guessing");
       }
       console.log("RRR guess", gameStatus, tiles);
