@@ -7,8 +7,7 @@
   export let boardMoving;
   export let movable = false;
 
-  import { onMount, afterUpdate } from "svelte";
-
+  import { onMount } from "svelte";
 
   let activeSquare = null;
 

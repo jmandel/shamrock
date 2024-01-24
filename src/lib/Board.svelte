@@ -95,9 +95,9 @@ style:height="373px"
 >
   <img  alt="board" class="shamrock" src={shamrock} on:click={rotateBoard}/>
   <input disabled={phase==="guessing"} type="text" class="top" bind:value={box[0]} placeholder={tiles[0]?.words?.[0] + " & " + tiles[1]?.words?.[0] }/>
-  <input disabled={phase==="guessing"} type="text" class="right" bind:value={box[1]} placeholder={tiles[1]?.words?.[1] + " & " + tiles[2]?.words?.[1]} />
-  <input disabled={phase==="guessing"} type="text" class="bottom" bind:value={box[2]} placeholder={tiles[2]?.words?.[2] + " & " + tiles[3]?.words?.[2]} />
-  <input disabled={phase==="guessing"} type="text" class="left" bind:value={box[3]} placeholder={tiles[3]?.words?.[3] + " & " + tiles[0]?.words?.[3]} />
+  <input disabled={phase==="guessing"} type="text" class="right" bind:value={box[1]} placeholder={tiles[1]?.words?.[1] + " & " + tiles[3]?.words?.[1]} />
+  <input disabled={phase==="guessing"} type="text" class="bottom" bind:value={box[2]} placeholder={tiles[3]?.words?.[2] + " & " + tiles[2]?.words?.[2]} />
+  <input disabled={phase==="guessing"} type="text" class="left" bind:value={box[3]} placeholder={tiles[2]?.words?.[3] + " & " + tiles[0]?.words?.[3]} />
 </div>
 </div>
 
@@ -134,6 +134,11 @@ style:height="373px"
     transition: rotate 0.1s ease;
   }
 
+  input:disabled {
+    color: black;
+    font-weight: bold;
+  }
+
   input.left {
     top: 90%;
     left: 0;
@@ -152,8 +157,6 @@ style:height="373px"
     text-align: center;
   }
 
-
-
   input.top {
     top: 0px;
     left: 10%;
@@ -164,7 +167,6 @@ style:height="373px"
     left: 10%;
     transform: rotate(180deg);
   }
-
 
 </style>
 
