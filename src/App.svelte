@@ -328,7 +328,11 @@ $: {console.log("OUT BAORD ANG", boardAngle)}
     </form>
     <ul>
       {#each gameStatus.playerNames as p}
-        <li>{p}</li>
+        <li>{p} 
+          {#if p === playerName}
+            (you)
+          {/if}
+         </li>
       {/each}
     </ul>
     {#if !gameStatus.started}
