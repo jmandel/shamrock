@@ -10,7 +10,7 @@ import { WebsocketProvider } from "y-websocket";
 
 const roomName = "squad";
 const documentGuid = `shamrock-${
-  new Date().toISOString().slice(0, 10)
+  new Date().toISOString().slice(0, 13)
 }-${roomName}`;
 
 export const ydoc = new Y.Doc({ guid: documentGuid });

@@ -9,7 +9,6 @@
   export let tiles = [];
   export let onTileMove;
   export let onBoardMove;
-  export let round = 0;
   export let phase;
 
   export let box = [null, null, null, null];
@@ -94,17 +93,10 @@ style:height="373px"
  style:border={"1px solid black"} style:rotate={`${boardAngle}deg`}
 >
   <img  alt="board" class="shamrock" src={shamrock} on:click={rotateBoard}/>
-  {#if phase === "guessing"}
-    <input type="text" class="top" on:keypress={(e) => {return e.preventDefault()}} value={box[0]} placeholder={tiles[0]?.words?.[0] + " & " + tiles[1]?.words?.[0] }/>
-    <input type="text" class="right" on:keypress={(e) => {return e.preventDefault()}} value={box[1]} placeholder={tiles[1]?.words?.[1] + " & " + tiles[3]?.words?.[1]} />
-    <input type="text" class="bottom" on:keypress={(e) => {return e.preventDefault()}} value={box[2]} placeholder={tiles[3]?.words?.[2] + " & " + tiles[2]?.words?.[2]} />
-    <input type="text" class="left" on:keypress={(e) => {return e.preventDefault()}} value={box[3]} placeholder={tiles[2]?.words?.[3] + " & " + tiles[0]?.words?.[3]} />
-  {:else}
-    <input type="text" class="top" bind:value={box[0]} placeholder={tiles[0]?.words?.[0] + " & " + tiles[1]?.words?.[0] }/>
-    <input type="text" class="right" bind:value={box[1]} placeholder={tiles[1]?.words?.[1] + " & " + tiles[3]?.words?.[1]} />
-    <input type="text" class="bottom" bind:value={box[2]} placeholder={tiles[3]?.words?.[2] + " & " + tiles[2]?.words?.[2]} />
-    <input type="text" class="left" bind:value={box[3]} placeholder={tiles[2]?.words?.[3] + " & " + tiles[0]?.words?.[3]} />
-  {/if}
+    <input readonly={phase === "guessing"} type="text" class="top"  bind:value={box[0]} placeholder={tiles[0]?.words?.[0] + " & " + tiles[1]?.words?.[0] }/>
+    <input readonly={phase === "guessing"} type="text" class="right" bind:value={box[1]} placeholder={tiles[1]?.words?.[1] + " & " + tiles[3]?.words?.[1]} />
+    <input readonly={phase === "guessing"} type="text" class="bottom" bind:value={box[2]} placeholder={tiles[3]?.words?.[2] + " & " + tiles[2]?.words?.[2]} />
+    <input readonly={phase === "guessing"} type="text" class="left" bind:value={box[3]} placeholder={tiles[2]?.words?.[3] + " & " + tiles[0]?.words?.[3]} />
 </div>
 </div>
 
