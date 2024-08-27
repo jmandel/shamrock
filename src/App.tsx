@@ -165,18 +165,24 @@ function GatheringPhase({ room, myPlayerName, setMyPlayerName }:
         </div>
       ))}
       
-      <h2>Add new player:</h2>
-      <input
-        type="text"
-        value={newPlayerName}
-        onChange={(e) => setNewPlayerName(e.target.value)}
-        placeholder="Enter player name"
-      />
-      <button onClick={addNewPlayer}>
-        Add Player
-      </button>
-      
-      <button onClick={beginGame} disabled={Object.keys(room.players || {}).length < 2}>
+      {playersInGame.length === 0 && (
+        <em>None yet, please join.</em>
+      )}
+
+      {!playersInGame.includes(myPlayerName || '') && (
+        <div>
+          <input
+            type="text"
+            value={newPlayerName}
+            onChange={(e) => setNewPlayerName(e.target.value)}
+            placeholder="Enter your name"
+          />
+          <button onClick={addNewPlayer}>
+            Join Game
+          </button>
+        </div>
+      )}
+      <button onClick={beginGame} disabled={Object.keys(room.players || {}).length < 1}>
         Begin Game
       </button>
     </div>
@@ -207,7 +213,7 @@ const styles: Record<string, React.CSSProperties> = {
     boxSizing: 'border-box',
     backgroundColor: '#fafafa',
     fontFamily: 'code, monospace',
-    height: '100vh',
+    maxHeight: '100vh',
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
@@ -225,72 +231,8 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     justifyContent: 'center',
     alignItems: 'center',
-    overflow: 'hidden',
-    width: 'min(100vw, 50vh)',
-    height: 'min(200vw, 100vh)',
-    maxWidth: '100%',
-    maxHeight: '100%',
-
-  },
-  form: {
-    boxSizing: 'inherit',
-    display: 'flex',
-    border: '1px solid lightgray',
-    borderBottomWidth: '0px',
-    width: '350px',
-  },
-  toggleAll: {
-    fontSize: '30px',
-    cursor: 'pointer',
-    marginLeft: '11px',
-    marginTop: '-6px',
-    width: '15px',
-    marginRight: '12px',
-  },
-  input: {
-    backgroundColor: 'transparent',
-    fontFamily: 'code, monospace',
-    width: '287px',
-    padding: '10px',
-    fontStyle: 'italic',
-  },
-  todoList: {
-    boxSizing: 'inherit',
-    width: '350px',
-  },
-  checkbox: {
-    fontSize: '30px',
-    marginLeft: '5px',
-    marginRight: '20px',
-    cursor: 'pointer',
-  },
-  todo: {
-    display: 'flex',
-    alignItems: 'center',
-    padding: '10px',
-    border: '1px solid lightgray',
-    borderBottomWidth: '0px',
-  },
-  todoText: {
-    flexGrow: '1',
-    overflow: 'hidden',
-  },
-  delete: {
-    width: '25px',
-    cursor: 'pointer',
-    color: 'lightgray',
-  },
-  actionBar: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    width: '328px',
-    padding: '10px',
-    border: '1px solid lightgray',
-    fontSize: '10px',
-  },
-  footer: {
-    marginTop: '20px',
-    fontSize: '10px',
+    height: 'calc(min(200vw,100vh))',
+    aspectRatio: '1/2',
   },
   resetButton: {
     position: 'fixed',

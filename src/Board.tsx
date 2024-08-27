@@ -277,8 +277,8 @@ const Board: React.FC<BoardProps> = ({ roomId, playerName, data }) => {
   }, [shouldUpdateBoardDisplay, gameState.tiles, gameState.boardRotation, edgeInputs, handleTileMove, handleTileRotate, handleEdgeInputChange, handleBoardRotate]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
-      <div style={{ flex: 1, overflow: 'hidden' }}>
+    <div style={{ display: 'flex', flexDirection: 'column',  height: '100%', width: 'min(100vw, 50vh)' }}>
+      <div style={{ flex: 1, maxHeight: 'calc(100vh - 5em)'}}>
         {memoizedBoardDisplay}
       </div>
       <div style={{
@@ -288,7 +288,8 @@ const Board: React.FC<BoardProps> = ({ roomId, playerName, data }) => {
         gap: '10px',
         padding: '10px',
         backgroundColor: '#f0f0f0',
-        borderTop: '1px solid #ccc'
+        borderTop: '1px solid #ccc',
+        height: '5em'
       }}>
         {isCluing && (
           <>
