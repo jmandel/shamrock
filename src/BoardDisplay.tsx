@@ -32,11 +32,11 @@ const BoardDisplay: React.FC<BoardDisplayProps> = ({
     boardRotation
   });
   const prevTargetRef = useRef<{tiles: TileData[], boardRotation: number}>({ tiles, boardRotation });
-  const animationFrameRef = useRef<number>(0);
   const isAnimatingRef = useRef<boolean>(false);
   const svgRef = useRef<SVGSVGElement | null>(null);
   const [draggingTile, setDraggingTile] = useState<{index: number, startX: number, startY: number, offsetX: number, offsetY: number} | null>(null);
   const tapTimeoutRef = useRef<number | null>(null);
+  const animationIdRef = useRef<number | null>(null);
 
   const viewBoxWidth = 1000;
   const viewBoxHeight = 2000;
@@ -63,25 +63,30 @@ const BoardDisplay: React.FC<BoardDisplayProps> = ({
   };
 
   useEffect(() => {
-    if (!isAnimatingRef.current) {
-      const rotationChanged = boardRotation !== prevTargetRef.current.boardRotation;
-      console.log("Rotation changed", rotationChanged, boardRotation, prevTargetRef.current.boardRotation);
-      const tilesChanged = JSON.stringify(tiles) !== JSON.stringify(prevTargetRef.current.tiles);
-      const onlyPositionsChanged = tilesChanged && !rotationChanged && 
-        tiles.every((tile, index) => 
-          tile.rotation === prevTargetRef.current.tiles[index]?.rotation);
-
-      if (rotationChanged  || (tilesChanged && !onlyPositionsChanged)) {
-        isAnimatingRef.current = true;
-          animateRotation(0);
-      } else {
-        isAnimatingRef.current = false;
-        updateStateWithoutAnimation(tiles, boardRotation);
-      }
-    } else {
-        updateStateWithoutAnimation(tiles, boardRotation);
-
+    if (animationIdRef.current) {
+      cancelAnimationFrame(animationIdRef.current);
+      animationIdRef.current = null;
     }
+
+    const rotationChanged = boardRotation !== prevTargetRef.current.boardRotation;
+    const tilesChanged = JSON.stringify(tiles) !== JSON.stringify(prevTargetRef.current.tiles);
+    const onlyPositionsChanged = tilesChanged && !rotationChanged && 
+      tiles.every((tile, index) => 
+        tile.rotation === prevTargetRef.current.tiles[index]?.rotation);
+
+    if (rotationChanged || (tilesChanged && !onlyPositionsChanged)) {
+      isAnimatingRef.current = true;
+      animateRotation(0);
+    } else {
+      isAnimatingRef.current = false;
+      updateStateWithoutAnimation(tiles, boardRotation);
+    }
+
+    return () => {
+      if (animationIdRef.current) {
+        cancelAnimationFrame(animationIdRef.current);
+      }
+    };
   }, [tiles, boardRotation]);
 
   const normalizeAngle = (angle: number): number => {
@@ -132,16 +137,19 @@ const BoardDisplay: React.FC<BoardDisplayProps> = ({
         boardRotation: newRotation
       });
 
-      animationFrameRef.current = requestAnimationFrame(() => animateRotation(frame + 1));
+      animationIdRef.current = requestAnimationFrame(() => animateRotation(frame + 1));
     } else {
       updateStateWithoutAnimation(tiles, boardRotation);
       isAnimatingRef.current = false;
+      animationIdRef.current = null;
     }
   };
 
   useEffect(() => {
     return () => {
-      cancelAnimationFrame(animationFrameRef.current);
+      if (animationIdRef.current) {
+        cancelAnimationFrame(animationIdRef.current);
+      }
     };
   }, []);
 
