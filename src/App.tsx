@@ -213,7 +213,7 @@ const styles: Record<string, React.CSSProperties> = {
     boxSizing: 'border-box',
     backgroundColor: '#fafafa',
     fontFamily: 'code, monospace',
-    maxHeight: '100vh',
+    maxHeight: '100dvh',
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
@@ -231,7 +231,7 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     justifyContent: 'center',
     alignItems: 'center',
-    height: 'calc(min(200vw,100vh))',
+    height: 'calc(min(200vw,100dvh))',
     aspectRatio: '1/2',
   },
   resetButton: {
