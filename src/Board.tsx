@@ -113,7 +113,7 @@ const Board: React.FC<BoardProps> = ({ roomId, playerName, data }) => {
   }, [roomId, data]);
 
   const handleBoardRotate = (): void => {
-    setGameState(prevState => {
+    let prevState = gameState;
       const newRotation = prevState.boardRotation + Math.PI / 2;
       const newTiles = prevState.tiles.map(tile => {
         const dx = tile.x - boardCenter.x;
@@ -132,12 +132,18 @@ const Board: React.FC<BoardProps> = ({ roomId, playerName, data }) => {
         return tile;
       });
 
+     if (room.status === 'guessing') {
       notifyServer(newTiles, newRotation);
-      return {
-        tiles: newTiles,
-        boardRotation: newRotation,
-      };
-    });
+     } else {
+      setGameState(_ => {
+        return {
+          tiles: newTiles,
+          boardRotation: newRotation,
+        };
+      });
+
+     }
+
   };
 
   const handleTileMove = (newTiles: TileData[], boardRotation: number) => {
@@ -147,18 +153,13 @@ const Board: React.FC<BoardProps> = ({ roomId, playerName, data }) => {
 
   const handleTileRotate = (index: number) => {
     if (data?.room[0].status === 'cluing') return;
-    setGameState(prevState => {
-      const newTiles = [...prevState.tiles];
-      newTiles[index] = {
-        ...newTiles[index],
-        rotation: newTiles[index].rotation + Math.PI / 2
-      };
-      notifyServer(newTiles, prevState.boardRotation);
-      return {
-        ...prevState,
-        tiles: newTiles
-      };
-    });
+    let prevState = gameState;
+    const newTiles = [...prevState.tiles];
+    newTiles[index] = {
+      ...newTiles[index],
+      rotation: newTiles[index].rotation + Math.PI / 2
+    };
+    notifyServer( newTiles, prevState.boardRotation);
   };
 
   const handleEdgeInputChange = (index: number, value: string) => {
