@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import BoardDisplay from './BoardDisplay';
-import { APP_ID, Schema, Room, PlayerData } from './Types';
+import { APP_ID, Room, Schema } from './Types';
 import { init, tx } from '@instantdb/react';
-import { debounce, isEqual } from 'lodash';
+import { isEqual } from 'lodash';
 
 const db = init<Schema>({ appId: APP_ID });
 
@@ -31,6 +31,7 @@ const Board: React.FC<BoardProps> = ({ roomId, playerName, data }) => {
   const boardRadius = 450;
 
   useEffect(() => {
+    if (!data?.room?.[0]?.players) return;
     if (edgeInputs.join("").length === 0) {
         setEdgeInputs(data?.room?.[0].players[playerName]?.clues || ["","","",""])
     }
@@ -221,15 +222,15 @@ const Board: React.FC<BoardProps> = ({ roomId, playerName, data }) => {
     }
   };
 
-  const room = data?.room?.[0];
+  const room = data?.room?.[0] as Room;
   console.log("DATA inside", data)
-  if (!room) return <div>Loading...</div>;
+  if (!room || !room.players) return <div>Loading...</div>;
 
   const isCluing = room.status === 'cluing';
   console.log("ROOM", room, isCluing    )
   const allPlayersReady = Object.values(room.players).every(player => player.readyToGuess);
 
-  const prevPropsRef = useRef({ tiles: gameState.tiles, boardRotation: gameState.boardRotation, edgeInputs });
+  const prevPropsRef = useRef<any>({ tiles: gameState.tiles, boardRotation: gameState.boardRotation, edgeInputs, component: null });
 
   const shouldUpdateBoardDisplay = useMemo(() => {
     const prevProps = prevPropsRef.current;
@@ -255,6 +256,7 @@ const Board: React.FC<BoardProps> = ({ roomId, playerName, data }) => {
 
   const memoizedBoardDisplay = useMemo(() => {
     if (!shouldUpdateBoardDisplay ) {
+      console.log("NOT UPDATING BOARD DISPLAY", prevPropsRef.current.component)
       return prevPropsRef.current.component;
     }
 
@@ -318,7 +320,7 @@ const Board: React.FC<BoardProps> = ({ roomId, playerName, data }) => {
                   cursor: 'pointer'
                 }}
               >
-                Proceed to Guessing
+                Proceed
               </button>
             )}
           </>

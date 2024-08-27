@@ -39,6 +39,19 @@ function App() {
     return <div>Creating new room...</div>;
   }
 
+  const resetRoom = () => {
+    if (currentRoom) {
+      db.transact([
+        tx.room[currentRoom.id].update({
+          name: roomName,
+          status: 'gathering',
+          players: {},  // Clear players
+          guessingViewState: undefined,  // Clear game state
+        })
+      ]);
+    }
+  };
+
   return (
     <div style={styles.container}>
       <div style={styles.gameContainer}>
@@ -52,18 +65,29 @@ function App() {
           <Board roomId={currentRoom.id} data={{room: [currentRoom]}} playerName={myPlayerName!} />
         )}
       </div>
+      <button onClick={resetRoom} style={styles.resetButton}>
+        Reset Room
+      </button>
     </div>
   )
 }
 
 function GatheringPhase({ room, myPlayerName, setMyPlayerName }: 
   { room: Room, myPlayerName: string | null, setMyPlayerName: (name: string) => void }) {
-  const [newPlayerName, setNewPlayerName] = useState('');
+  const [newPlayerName, setNewPlayerName] = useState(myPlayerName);
+
+  useEffect(() => {
+    if (Object.keys(room.players || {}).length === 0 && myPlayerName) {
+      if (newPlayerName === "") {
+        setNewPlayerName(myPlayerName);
+      }
+    }
+  }, [room.players])
 
   const removePlayer = async (playerName: string) => {
 
     if (playerName === myPlayerName) {
-      setMyPlayerName('myPlayerName');
+      setMyPlayerName(myPlayerName);
       localStorage.removeItem('shamrockPlayerName');
     }
 
@@ -95,7 +119,7 @@ function GatheringPhase({ room, myPlayerName, setMyPlayerName }:
 
       db.transact([
         tx.room[room.id].merge({
-          players: {...addNew, ...removeOld}
+          players: { ...removeOld, ...addNew}
         })
       ]);
 
@@ -267,6 +291,17 @@ const styles: Record<string, React.CSSProperties> = {
   footer: {
     marginTop: '20px',
     fontSize: '10px',
+  },
+  resetButton: {
+    position: 'fixed',
+    bottom: '10px',
+    right: '10px',
+    padding: '5px 10px',
+    fontSize: '12px',
+    backgroundColor: '#f0f0f0',
+    border: '1px solid #ccc',
+    borderRadius: '3px',
+    cursor: 'pointer',
   },
 }
 
