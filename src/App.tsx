@@ -1,33 +1,33 @@
 import './App.css'
 import { init, tx, id } from '@instantdb/react'
 import Board from './Board'
-import { APP_ID, Schema, Player, Room } from './Types'
+import { APP_ID, Schema, Room } from './Types'
 import { useState, useEffect } from 'react'
+import shamrock from './shamrock.json'
 
 const db = init<Schema>({ appId: APP_ID })
 
 function App() {
   const [roomName, setRoomName] = useState('default')
-  const [myPlayerId, setMyPlayerId] = useState<string | null>(null)
+  const [myPlayerName, setMyPlayerName] = useState<string | null>(localStorage.getItem('shamrockPlayerName'))
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const roomParam = params.get('room')
     if (roomParam) setRoomName(roomParam)
 
-    const storedPlayerId = localStorage.getItem('shamrockPlayerId')
-    if (storedPlayerId) setMyPlayerId(storedPlayerId)
+    const storedPlayerName = localStorage.getItem('shamrockPlayerName')
+    if (storedPlayerName) setMyPlayerName(storedPlayerName)
   }, [])
 
   const { isLoading, error, data } = db.useQuery({ 
-    room: {$: {where: {name: roomName}}, joinedPlayers: {}},
-    player: {}
+    room: {$: {where: {name: roomName}}}
   })
 
   if (isLoading) return <div>Fetching data...</div>
   if (error) return <div>Error fetching data: {error.message}</div>
 
-  const { room, player } = data
+  const { room } = data
   console.log("DATA", data)
   const currentRoom = room[0]
 
@@ -45,113 +45,123 @@ function App() {
         {currentRoom.status === 'gathering' ? (
           <GatheringPhase 
             room={currentRoom} 
-            allPlayers={player} 
-            myPlayerId={myPlayerId} 
-            setMyPlayerId={setMyPlayerId} 
+            myPlayerName={myPlayerName} 
+            setMyPlayerName={setMyPlayerName} 
           />
         ) : (
-          <Board roomId={currentRoom.id} playerId={myPlayerId!} />
+          <Board roomId={currentRoom.id} data={{room: [currentRoom]}} playerName={myPlayerName!} />
         )}
       </div>
     </div>
   )
 }
 
-function GatheringPhase({ room, allPlayers, myPlayerId, setMyPlayerId }: 
-  { room: Room, allPlayers: Player[], myPlayerId: string | null, setMyPlayerId: (id: string) => void }) {
-  const togglePlayerInRoom = async (player: Player) => {
-    const isInRoom = room.joinedPlayers.some(p => p.id === player.id)
-    console.log("TOGGLE", isInRoom, player.id, room.id, room.joinedPlayers)
-    if (isInRoom) {
-      // await db.transact([
-      // tx.room[room.id].unlink({ joinedPlayers: player.id })
-      // ]);
-    } else {
-      await db.transact([
-      tx.room[room.id].link({ joinedPlayers: player.id })
-      ])
+function GatheringPhase({ room, myPlayerName, setMyPlayerName }: 
+  { room: Room, myPlayerName: string | null, setMyPlayerName: (name: string) => void }) {
+  const [newPlayerName, setNewPlayerName] = useState('');
+
+  const removePlayer = async (playerName: string) => {
+
+    if (playerName === myPlayerName) {
+      setMyPlayerName('myPlayerName');
+      localStorage.removeItem('shamrockPlayerName');
     }
-  }
+
+    await db.transact([
+      tx.room[room.id].update({
+        ...room,
+        players: Object.fromEntries(
+          Object.entries(room.players || {}).filter(([name]) => name !== playerName)
+        )
+      })
+    ]);
+
+  };
+
+  const addNewPlayer = () => {
+    if (newPlayerName && !(newPlayerName in (room.players || {}))) {
+      const addNew = {
+        [newPlayerName]: {
+          readyToGuess: false,
+          readyToJoin: false,
+          tilesAsClued: [],
+          tilesAsGuessed: []
+        }
+      }
+
+      const removeOld = myPlayerName ? {
+        [myPlayerName]: undefined
+      } : {}
+
+      db.transact([
+        tx.room[room.id].merge({
+          players: {...addNew, ...removeOld}
+        })
+      ]);
+
+      setNewPlayerName('');
+      setMyPlayerName(newPlayerName);
+      localStorage.setItem('shamrockPlayerName', newPlayerName);
+
+    }
+  };
 
   const beginGame = () => {
     db.transact([
-    tx.room[room.id].merge({ status: 'cluing', guessingViewState: { boardRotation: 0 } }),
-     ...room.joinedPlayers.map(player => {
-      const tiles = drawTiles()
-      return tx.player[player.id].merge({
-        tilesAsClued: tiles.slice(0, 4).map(rotateArray),
-        tilesAsGuessed: shuffleArray(tiles.map(rotateArray))
+      tx.room[room.id].update({ 
+        name: room.name,
+        status: 'cluing', 
+        guessingViewState: { boardRotation: 0 },
+        players: Object.fromEntries(
+          Object.keys(room.players || {}).map(playerName => {
+            const tiles = drawTiles();
+            return [playerName, {
+              name: playerName,
+              tilesAsClued: tiles.slice(0, 4).map(rotateArray),
+              tilesAsGuessed: shuffleArray(tiles.map(rotateArray))
+            }]
+          })
+        )
       })
-    })
-  ])
-  }
+    ]);
+  };
 
-  const playersInGame = allPlayers.filter(player => 
-    room.joinedPlayers.some(p => p.id === player.id)
-  );
-  const playersNotInGame = allPlayers.filter(player => 
-    !room.joinedPlayers.some(p => p.id === player.id)
-  );
-
-  const addNewPlayer = () => {
-    const newPlayerName = prompt("Enter new player name:")
-    if (newPlayerName) {
-      db.transact([
-        tx.player[id()].update({ name: newPlayerName })
-      ])
-    }
-  }
-
-  const claimPlayer = (playerId: string) => {
-    setMyPlayerId(playerId)
-    localStorage.setItem('shamrockPlayerId', playerId)
-  }
+  const playersInGame = Object.keys(room.players || {});
 
   return (
     <div>
       <h2>Players in the game:</h2>
-      {playersInGame.map(player => (
-        <div key={player.id}>
-          {player.name}
-          <button onClick={() => togglePlayerInRoom(player)}>
+      {playersInGame.map(playerName => (
+        <div key={playerName}>
+          {playerName}
+          <button onClick={() => removePlayer(playerName)}>
             Remove
           </button>
-          {player.id !== myPlayerId && (
-            <button onClick={() => claimPlayer(player.id)}>
-              Me
-            </button>
-          )}
+          {playerName === myPlayerName && <span> (You)</span>}
         </div>
       ))}
       
-      <h2>Players not in the game:</h2>
-      {playersNotInGame.map(player => (
-        <div key={player.id}>
-          {player.name}
-          <button onClick={() => togglePlayerInRoom(player)}>
-            Add
-          </button>
-          {player.id !== myPlayerId && (
-            <button onClick={() => claimPlayer(player.id)}>
-              Me
-            </button>
-          )}
-        </div>
-      ))}
-      
+      <h2>Add new player:</h2>
+      <input
+        type="text"
+        value={newPlayerName}
+        onChange={(e) => setNewPlayerName(e.target.value)}
+        placeholder="Enter player name"
+      />
       <button onClick={addNewPlayer}>
-        New Player
+        Add Player
       </button>
       
-      <button onClick={beginGame} disabled={room.joinedPlayers.length < 2}>
+      <button onClick={beginGame} disabled={Object.keys(room.players || {}).length < 2}>
         Begin Game
       </button>
     </div>
-  )
+  );
 }
 
 function drawTiles(): string[][] {
-  return Array(5).fill(0).map(() => ['A', 'B', 'C', 'D'])
+  return shuffleArray(shamrock as string[][]).slice(0, 5);
+  // return []
 }
 
 function shuffleArray<T>(array: T[]): T[] {

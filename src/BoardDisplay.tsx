@@ -12,7 +12,7 @@ interface BoardDisplayProps {
   tiles: TileData[];
   boardRotation: number;
   edgeInputs: string[];
-  onTileMove: (newTiles: TileData[]) => void;
+  onTileMove: (newTiles: TileData[], boardRotation: number) => void;
   onTileRotate: (index: number) => void;
   onEdgeInputChange: (index: number, value: string) => void;
   onBoardRotate: () => void;
@@ -41,12 +41,12 @@ const BoardDisplay: React.FC<BoardDisplayProps> = ({
   const viewBoxWidth = 1000;
   const viewBoxHeight = 2000;
   const boardRadius = viewBoxWidth / 2 - 80;
-  const topPadding = 80;
+  const topPadding = 120;
   const boardCenter = { x: viewBoxWidth / 2, y: boardRadius + topPadding };
 
   const tileSize = viewBoxWidth / 3;
   const totalFrames = 10;
-  const inputHeight = boardRadius * 0.15;
+  const inputHeight = 100;
 
   const isOnBoard = (x: number, y: number): boolean => {
     const dx = x - boardCenter.x;
@@ -65,17 +65,22 @@ const BoardDisplay: React.FC<BoardDisplayProps> = ({
   useEffect(() => {
     if (!isAnimatingRef.current) {
       const rotationChanged = boardRotation !== prevTargetRef.current.boardRotation;
+      console.log("Rotation changed", rotationChanged, boardRotation, prevTargetRef.current.boardRotation);
       const tilesChanged = JSON.stringify(tiles) !== JSON.stringify(prevTargetRef.current.tiles);
       const onlyPositionsChanged = tilesChanged && !rotationChanged && 
         tiles.every((tile, index) => 
           tile.rotation === prevTargetRef.current.tiles[index]?.rotation);
 
-      if (rotationChanged || (tilesChanged && !onlyPositionsChanged)) {
+      if (rotationChanged  || (tilesChanged && !onlyPositionsChanged)) {
         isAnimatingRef.current = true;
-        animateRotation(0);
+          animateRotation(0);
       } else {
+        isAnimatingRef.current = false;
         updateStateWithoutAnimation(tiles, boardRotation);
       }
+    } else {
+        updateStateWithoutAnimation(tiles, boardRotation);
+
     }
   }, [tiles, boardRotation]);
 
@@ -182,7 +187,7 @@ const BoardDisplay: React.FC<BoardDisplayProps> = ({
         x: newX,
         y: newY
       };
-      onTileMove(newTiles);
+      onTileMove(newTiles, currentState.boardRotation);
     }
   };
 
@@ -202,6 +207,16 @@ const BoardDisplay: React.FC<BoardDisplayProps> = ({
       onBoardRotate();
     }
   };
+
+  const placeholders = tiles.length > 3 ? [
+    `${tiles[0].words[0]} & ${tiles[1].words[0]}`,
+    `${tiles[1].words[1]} & ${tiles[3].words[1]}`,
+    `${tiles[3].words[2]} & ${tiles[2].words[2]}`,
+    `${tiles[2].words[3]} & ${tiles[0].words[3]}`
+
+  ] : []
+
+  console.log("TILES", tiles)
 
   return (
     <svg
@@ -224,76 +239,37 @@ const BoardDisplay: React.FC<BoardDisplayProps> = ({
           onClick={handleBoardClick}
           style={{ cursor: 'pointer' }}
         />
-        <foreignObject x={boardCenter.x - boardRadius} y={boardCenter.y - boardRadius - inputHeight} width={boardRadius * 2} height={inputHeight}>
-          <div style={{ width: '100%', height: '100%' }}>
-            <input
-              value={edgeInputs[0]}
-              onChange={(e) => onEdgeInputChange(0, e.target.value)}
-              style={{
-                width: '100%',
-                height: '100%',
-                textAlign: 'center',
-                backgroundColor: 'white',
-                border: '1px solid #d1d5db',
-                fontSize: '6rem'
-              }}
-            />
-          </div>
-        </foreignObject>
-        <foreignObject x={boardCenter.x + boardRadius} y={boardCenter.y - boardRadius} width={inputHeight} height={boardRadius * 2}>
-          <div style={{ width: '100%', height: '100%' }}>
-            <input
-              value={edgeInputs[1]}
-              onChange={(e) => onEdgeInputChange(1, e.target.value)}
-              style={{
-                width: '100%',
-                height: '100%',
-                textAlign: 'center',
-                backgroundColor: 'white',
-                border: '1px solid #d1d5db',
-                fontSize: '6rem',
-                writingMode: 'vertical-rl',
-                textOrientation: 'mixed'
-              }}
-            />
-          </div>
-        </foreignObject>
-        <foreignObject x={boardCenter.x - boardRadius} y={boardCenter.y + boardRadius} width={boardRadius * 2} height={inputHeight}>
-          <div style={{ width: '100%', height: '100%' }}>
-            <input
-              value={edgeInputs[2]}
-              onChange={(e) => onEdgeInputChange(2, e.target.value)}
-              style={{
-                width: '100%',
-                height: '100%',
-                textAlign: 'center',
-                backgroundColor: 'white',
-                border: '1px solid #d1d5db',
-                fontSize: '6rem',
-                transform: 'rotate(180deg)'
-              }}
-            />
-          </div>
-        </foreignObject>
-        <foreignObject x={boardCenter.x - boardRadius - inputHeight} y={boardCenter.y - boardRadius} width={inputHeight} height={boardRadius * 2}>
-          <div style={{ width: '100%', height: '100%' }}>
-            <input
-              value={edgeInputs[3]}
-              onChange={(e) => onEdgeInputChange(3, e.target.value)}
-              style={{
-                width: '100%',
-                height: '100%',
-                textAlign: 'center',
-                backgroundColor: 'white',
-                border: '1px solid #d1d5db',
-                fontSize: '6rem',
-                writingMode: 'vertical-rl',
-                textOrientation: 'mixed',
-                transform: 'rotate(180deg)'
-              }}
-            />
-          </div>
-        </foreignObject>
+        {[
+          { x: boardCenter.x - boardRadius, y: boardCenter.y - boardRadius - inputHeight, width: boardRadius * 2, height: inputHeight, index: 0 },
+          { x: boardCenter.x + boardRadius, y: boardCenter.y - boardRadius, width: inputHeight, height: boardRadius * 2, index: 1 },
+          { x: boardCenter.x - boardRadius, y: boardCenter.y + boardRadius, width: boardRadius * 2, height: inputHeight, index: 2 },
+          { x: boardCenter.x - boardRadius - inputHeight, y: boardCenter.y - boardRadius, width: inputHeight, height: boardRadius * 2, index: 3 }
+        ].map(({ x, y, width, height, index }) => (
+          <foreignObject key={index} x={x} y={y} width={width} height={height}>
+            <div style={{ width: '100%', height: '100%' }}>
+              <input
+                value={edgeInputs[index]}
+                placeholder={placeholders[index]}
+                onChange={(e) => onEdgeInputChange(index, e.target.value)}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  textAlign: 'center',
+                  backgroundColor: '#f0f8ff', // Light sky blue color
+                  border: '1px solid #d1d5db',
+                  fontSize: '5rem',
+                  ...(index === 1 || index === 3 ? {
+                    writingMode: 'vertical-rl',
+                    textOrientation: 'mixed',
+                  } : {}),
+                  ...(index === 2 || index === 3 ? {
+                    transform: 'rotate(180deg)',
+                  } : {})
+                }}
+              />
+            </div>
+          </foreignObject>
+        ))}
       </g>
 
       {currentState.tiles.map((tile, index) => (

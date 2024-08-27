@@ -10,7 +10,7 @@ interface TileProps {
 }
 
 const Tile: React.FC<TileProps> = ({ x, y, rotation, size, words, isOnBoard }) => {
-  const fontSize = size * 0.18; // Slightly reduced font size
+  const fontSize = size * 0.12; // Slightly reduced font size
   const padding = size * 0.11; // Reduced padding
 
   return (
@@ -27,7 +27,7 @@ const Tile: React.FC<TileProps> = ({ x, y, rotation, size, words, isOnBoard }) =
       {words.map((word, index) => {
         let textX: number, textY: number, rotate: number;
         switch(index) {
-          case 0: textX = 0; textY = -size / 2 ; rotate = 0; break; // Increased top padding
+          case 0: textX = 0; textY = -size / 2 + padding * .5 ; rotate = 0; break; // Increased top padding
           case 1: textX = size / 2 - padding; textY = 0; rotate = 90; break;
           case 2: textX = 0; textY = size / 2 - padding * 1.5; rotate = 180; break; // Decreased bottom padding
           case 3: textX = -size / 2 + padding; textY = 0; rotate = 270; break;

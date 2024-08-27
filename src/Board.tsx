@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import BoardDisplay from './BoardDisplay';
-import { APP_ID, Schema } from './Types';
+import { APP_ID, Schema, Room, PlayerData } from './Types';
 import { init, tx } from '@instantdb/react';
-import { throttle } from 'lodash';
+import { debounce, isEqual } from 'lodash';
 
 const db = init<Schema>({ appId: APP_ID });
 
@@ -15,50 +15,50 @@ interface TileData {
 
 interface BoardProps {
   roomId: string;
-  playerId: string;
+  playerName: string;
+  data: any;
 }
 
-const Board: React.FC<BoardProps> = ({ roomId, playerId }) => {
+const Board: React.FC<BoardProps> = ({ roomId, playerName, data }) => {
   const [gameState, setGameState] = useState<{tiles: TileData[], boardRotation: number}>({
     tiles: [],
     boardRotation: 0,
   });
 
-  const [edgeInputs, setEdgeInputs] = useState<string[]>(['North', 'East', 'South', 'West']);
+  const [edgeInputs, setEdgeInputs] = useState<string[]>(["","","",""]);
 
-  const [selectedPlayer, setSelectedPlayer] = useState<string | null>(null);
-  useEffect(() => {
-    setSelectedPlayer(playerId);
-  }, [playerId]);
-
-  const boardCenter = { x: 500, y: 500 };
+  const boardCenter = { x: 500, y: 540 };
   const boardRadius = 450;
 
-  const { isLoading, error, data } = db.useQuery({
-    room: { 
-        $: {where: {id: roomId}},
-        currentPlayer: { },
-        joinedPlayers: {}
+  useEffect(() => {
+    if (edgeInputs.join("").length === 0) {
+        setEdgeInputs(data?.room?.[0].players[playerName]?.clues || ["","","",""])
     }
-  });
+  }, [data?.room?.[0]?.players?.[playerName]?.clues])
+
+  const synedOnStart = useRef(false);
 
   useEffect(() => {
-    if (!isLoading && !error && data.room) {
+    if (data.room) {
       const room = data.room[0];
       if (!room) return;
 
-      if (room.currentPlayer?.[0]?.id) {
-        setSelectedPlayer(room.currentPlayer[0].id);
-      }
-
       const isCluing = room.status === 'cluing';
-      const thisPlayer = room.joinedPlayers.find(p => p.id === playerId);
-      const tilesData = isCluing ? thisPlayer?.tilesAsClued : thisPlayer?.tilesAsGuessed;
-      
+      const thisPlayer = room.players[playerName];
+      const tilesData = isCluing ? thisPlayer?.tilesAsClued : room.guessingViewState?.tiles?.map(t =>t.words);
+     
       if (tilesData && Array.isArray(tilesData)) {
+
+        if (isCluing) {
+            if (synedOnStart.current) {
+                return;
+            }
+            synedOnStart.current = true;
+        }
+    
         const newTiles: TileData[] = tilesData.map((words, index) => {
           if (isCluing) {
-            // Initialize tiles in four quadrants for cluing phase
+           // Initialize tiles in four quadrants for cluing phase
             const quadrant = index % 4;
             const x = boardCenter.x + (quadrant % 2 === 0 ? -1 : 1) * boardRadius / 2;
             const y = boardCenter.y + (quadrant < 2 ? -1 : 1) * boardRadius / 2;
@@ -66,6 +66,7 @@ const Board: React.FC<BoardProps> = ({ roomId, playerId }) => {
           } else {
             // Use guessingViewState or initialize below the board for guessing phase
             const existingTile = room.guessingViewState?.tiles?.[index];
+            console.log("EXISTING TILE", existingTile)
             if (existingTile) {
               return {
                 x: existingTile.x || 0,
@@ -84,16 +85,18 @@ const Board: React.FC<BoardProps> = ({ roomId, playerId }) => {
           }
         });
 
+        if (!isCluing) {
+            setEdgeInputs(room.players[room.guessingViewState?.playerName ]?.clues)
+        }
         setGameState(prevState => ({
-          ...prevState,
-          tiles: newTiles.map(t => (isCluing ? {...t, rotation: prevState.boardRotation || 0} : t)),
-          boardRotation:  isCluing ? prevState.boardRotation :  room.guessingViewState?.boardRotation || 0
+          tiles: newTiles,
+          boardRotation: isCluing ? prevState.boardRotation : room.guessingViewState?.boardRotation || 0
         }));
       }
     }
-  }, [isLoading, error, data]);
+  }, [data, playerName]);
 
-  const notifyServer = useCallback(throttle((newTiles: TileData[], newBoardRotation: number) => {
+  const notifyServer = useCallback((newTiles: TileData[], newBoardRotation: number) => {
     console.log("notifyServer", data?.room[0].status)
     if (data?.room[0].status !== 'guessing') {
         return;
@@ -106,7 +109,7 @@ const Board: React.FC<BoardProps> = ({ roomId, playerId }) => {
         }
       })
     );
-  }, 500), [roomId]); // 200ms delay, which means max 5 times per second
+  }, [roomId, data]);
 
   const handleBoardRotate = (): void => {
     setGameState(prevState => {
@@ -136,19 +139,13 @@ const Board: React.FC<BoardProps> = ({ roomId, playerId }) => {
     });
   };
 
-  const handleTileMove = (newTiles: TileData[]) => {
-    if (data.room[0].status === 'cluing') return; // Ignore in cluing phase
-    setGameState(prevState => {
-      return {
-        ...prevState,
-        tiles: newTiles
-      };
-    });
-    notifyServer(newTiles, gameState.boardRotation);
+  const handleTileMove = (newTiles: TileData[], boardRotation: number) => {
+    if (data?.room[0].status === 'cluing') return;
+    notifyServer(newTiles, boardRotation);
   };
 
   const handleTileRotate = (index: number) => {
-    if (data.room[0].status === 'cluing') return; // Ignore in cluing phase
+    if (data?.room[0].status === 'cluing') return;
     setGameState(prevState => {
       const newTiles = [...prevState.tiles];
       newTiles[index] = {
@@ -171,53 +168,116 @@ const Board: React.FC<BoardProps> = ({ roomId, playerId }) => {
       return newInputs;
     });
     // Unset readyToGuess when input changes
-    
-    db.transact([tx.player[playerId].merge({ readyToGuess: false })]);
+    db.transact([
+      tx.room[roomId].merge({
+        players: {
+          [playerName]: {
+            readyToGuess: false
+          }
+        }
+      })
+    ]);
   };
 
   const handleReadyClick = () => {
-    db.transact([tx.player[playerId].merge({ readyToGuess: true })]);
+    db.transact([
+      tx.room[roomId].merge({
+        players: {
+          [playerName]: {
+            readyToGuess: true,
+            clues: edgeInputs
+          }
+        }
+      })
+    ]);
   };
 
   const handleProceedToGuessing = () => {
     db.transact(tx.room[roomId].merge({ status: 'guessing' }));
   };
 
-  const handlePlayerSelect = (playerId: string) => {
-    if (!playerId) return; 
-    setSelectedPlayer(playerId);
-    db.transact([
-        tx.room[roomId].link({ currentPlayer: playerId })
-    ]);
+  const handlePlayerSelect = (selectedPlayerName: string) => {
+    const selectedPlayer = data.room[0].players[selectedPlayerName];
+    console.log("SELECTED PLAYER", selectedPlayer)
+    if (selectedPlayer) {
+
+      const newTiles = selectedPlayer.tilesAsGuessed.map((words, index) => ({
+        x: 1000/3/2 + (index % 3) * 1000/3,
+        y: boardCenter.y + boardRadius * 1.6 + Math.floor(index / 3) * (1000/3 + 10),
+        rotation: 0,
+        words: words || []
+      }));
+      console.log("NEW TILES", newTiles)
+
+      db.transact(
+        tx.room[roomId].merge({
+          guessingViewState: {
+            playerName: selectedPlayerName,
+            tiles: newTiles,
+            boardRotation: 0
+          }
+        })
+      );
+    }
   };
 
-  if (isLoading) return <div>Loading...</div>;
-  if (error) return <div>Error: {error.message}</div>;
+  const room = data?.room?.[0];
+  console.log("DATA inside", data)
+  if (!room) return <div>Loading...</div>;
 
-  const room = data.room[0];
   const isCluing = room.status === 'cluing';
-  const allPlayersReady = room.joinedPlayers.every(player => player.readyToGuess);
+  console.log("ROOM", room, isCluing    )
+  const allPlayersReady = Object.values(room.players).every(player => player.readyToGuess);
 
-//   useEffect(() => {
-//     if (currentPlayerId) {
-//       setSelectedPlayer(currentPlayerId);
-//     }
-//   }, [currentPlayerId]);
+  const prevPropsRef = useRef({ tiles: gameState.tiles, boardRotation: gameState.boardRotation, edgeInputs });
+
+  const shouldUpdateBoardDisplay = useMemo(() => {
+    const prevProps = prevPropsRef.current;
+    const shouldUpdate = !isEqual(prevProps.tiles, gameState.tiles) ||
+      prevProps.boardRotation !== gameState.boardRotation ||
+      !isEqual(prevProps.edgeInputs, edgeInputs);
+
+    if (shouldUpdate) {
+        console.log("SHOULD UPDATE", "Because",
+            !isEqual(prevProps.tiles, gameState.tiles),
+            prevProps.boardRotation !== gameState.boardRotation,
+            !isEqual(prevProps.edgeInputs, edgeInputs)
+        )
+      prevPropsRef.current = {
+        tiles: gameState.tiles,
+        boardRotation: gameState.boardRotation,
+        edgeInputs
+      };
+    }
+
+    return shouldUpdate;
+  }, [gameState.tiles, gameState.boardRotation, edgeInputs]);
+
+  const memoizedBoardDisplay = useMemo(() => {
+    if (!shouldUpdateBoardDisplay ) {
+      return prevPropsRef.current.component;
+    }
+
+    const newComponent = (
+      <BoardDisplay 
+        tiles={gameState.tiles}
+        boardRotation={gameState.boardRotation}
+        edgeInputs={edgeInputs}
+        onTileMove={handleTileMove}
+        onTileRotate={handleTileRotate}
+        onEdgeInputChange={handleEdgeInputChange}
+        onBoardRotate={handleBoardRotate}
+      />
+    );
+
+    prevPropsRef.current.component = newComponent;
+    return newComponent;
+  }, [shouldUpdateBoardDisplay, gameState.tiles, gameState.boardRotation, edgeInputs, handleTileMove, handleTileRotate, handleEdgeInputChange, handleBoardRotate]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
       <div style={{ flex: 1, overflow: 'hidden' }}>
-        {(selectedPlayer || isCluing) && (
-          <BoardDisplay 
-            tiles={gameState.tiles}
-            boardRotation={gameState.boardRotation}
-            edgeInputs={edgeInputs}
-            onTileMove={handleTileMove}
-            onTileRotate={handleTileRotate}
-            onEdgeInputChange={handleEdgeInputChange}
-            onBoardRotate={handleBoardRotate}
-          />
-        )}
+        {memoizedBoardDisplay}
       </div>
       <div style={{
         display: 'flex',
@@ -228,43 +288,15 @@ const Board: React.FC<BoardProps> = ({ roomId, playerId }) => {
         backgroundColor: '#f0f0f0',
         borderTop: '1px solid #ccc'
       }}>
-        {!isCluing && (
-          <select 
-            value={selectedPlayer || ''} 
-            onChange={(e) => handlePlayerSelect(e.target.value)}
-            style={{
-              padding: '10px 20px',
-              fontSize: '16px',
-              backgroundColor: '#ffffff',
-              color: '#333',
-              border: '1px solid #ccc',
-              borderRadius: '5px',
-              cursor: 'pointer',
-              appearance: 'none',
-              WebkitAppearance: 'none',
-              MozAppearance: 'none',
-              backgroundImage: 'url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23007CB2%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E")',
-              backgroundRepeat: 'no-repeat',
-              backgroundPosition: 'right 10px top 50%',
-              backgroundSize: '12px auto',
-              minWidth: '200px'
-            }}
-          >
-            <option value="">Select a player</option>
-            {room.joinedPlayers.map(player => (
-              <option key={player.id} value={player.id}>{player.name}</option>
-            ))}
-          </select>
-        )}
         {isCluing && (
           <>
             <button 
-              disabled={data.room[0].joinedPlayers.find(p => p.id === playerId)?.readyToGuess}
+              disabled={room.players[playerName]?.readyToGuess}
               onClick={handleReadyClick}
               style={{
                 padding: '10px 20px',
                 fontSize: '16px',
-                backgroundColor: data.room[0].joinedPlayers.find(p => p.id === playerId)?.readyToGuess ? '#ccc' : '#4CAF50',
+                backgroundColor: room.players[playerName]?.readyToGuess ? '#ccc' : '#4CAF50',
                 color: 'white',
                 border: 'none',
                 borderRadius: '5px',
@@ -290,6 +322,23 @@ const Board: React.FC<BoardProps> = ({ roomId, playerId }) => {
               </button>
             )}
           </>
+        )}
+        {!isCluing && (
+          <select
+            onChange={(e) => handlePlayerSelect(e.target.value)}
+            value={data.room[0].guessingViewState?.playerName || ''}
+            style={{
+              padding: '10px',
+              fontSize: '16px',
+              borderRadius: '5px',
+              border: '1px solid #ccc'
+            }}
+          >
+            <option value="">Select a player</option>
+            {Object.keys(data.room[0].players).map((name) => (
+              <option key={name} value={name}>{name}</option>
+            ))}
+          </select>
         )}
       </div>
     </div>
