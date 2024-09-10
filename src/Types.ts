@@ -13,7 +13,13 @@ export type Room = {
   guessingViewState: {
     playerName: string,
     boardRotation: number,
-    tiles: {x: number, y: number, rotation: number, words: string[]}[]
+    tiles: {
+      x: number,
+      y: number,
+      rotation: number,
+      words: string[],
+      draggingUser?: string
+    }[]
   }
 }
 

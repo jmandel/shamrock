@@ -1,18 +1,15 @@
 import React, { useRef, useState, useEffect } from 'react';
 import Tile from './Tile';
+import { Room } from './Types';
 
-interface TileData {
-  x: number;
-  y: number;
-  rotation: number;
-  words: string[];
-}
+type TileData = Room['guessingViewState']['tiles'][number]
 
 interface BoardDisplayProps {
   tiles: TileData[];
   boardRotation: number;
   edgeInputs: string[];
-  onTileMove: (newTiles: TileData[], boardRotation: number) => void;
+  onTileMove: (movedTileIndex: number, newTiles: TileData[], boardRotation: number) => void;
+  onTileRelease: (newTiles: TileData[], boardRotation: number) => void;
   onTileRotate: (index: number) => void;
   onEdgeInputChange: (index: number, value: string) => void;
   onBoardRotate: () => void;
@@ -23,6 +20,7 @@ const BoardDisplay: React.FC<BoardDisplayProps> = ({
   boardRotation,
   edgeInputs,
   onTileMove,
+  onTileRelease,
   onTileRotate,
   onEdgeInputChange,
   onBoardRotate
@@ -195,7 +193,7 @@ const BoardDisplay: React.FC<BoardDisplayProps> = ({
         x: newX,
         y: newY
       };
-      onTileMove(newTiles, currentState.boardRotation);
+      onTileMove(draggingTile.index, newTiles, currentState.boardRotation);
     }
   };
 
@@ -204,6 +202,8 @@ const BoardDisplay: React.FC<BoardDisplayProps> = ({
     if (tapTimeoutRef.current && draggingTile) {
       clearTimeout(tapTimeoutRef.current);
       onTileRotate(draggingTile.index);
+    } else {
+      onTileRelease(currentState.tiles, currentState.boardRotation);
     }
     setDraggingTile(null);
     tapTimeoutRef.current = null;
@@ -292,6 +292,7 @@ const BoardDisplay: React.FC<BoardDisplayProps> = ({
             rotation={tile.rotation}
             size={tileSize}
             words={tile.words}
+            draggingUser={tile.draggingUser}
             isOnBoard={isOnBoard(tile.x, tile.y)}
           />
         </g>

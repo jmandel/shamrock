@@ -7,9 +7,10 @@ interface TileProps {
   size: number;
   words: string[];
   isOnBoard: boolean;
+  draggingUser?: string;
 }
 
-const Tile: React.FC<TileProps> = ({ x, y, rotation, size, words, isOnBoard }) => {
+const Tile: React.FC<TileProps> = ({ x, y, rotation, size, words, isOnBoard, draggingUser }) => {
   const fontSize = size * 0.12; // Slightly reduced font size
   const padding = size * 0.11; // Reduced padding
 
@@ -34,20 +35,37 @@ const Tile: React.FC<TileProps> = ({ x, y, rotation, size, words, isOnBoard }) =
           default: textX = 0; textY = 0; rotate = 0;
         }
         return (
-          <text
-            key={index}
-            x={textX}
-            y={textY}
-            fontSize={fontSize}
-            fill="white"
-            textAnchor="middle"
-            dominantBaseline={index === 0 ? "hanging" : index === 2 ? "auto" : "middle"}
-            transform={`rotate(${rotate}, ${textX}, ${textY})`}
-          >
-            {word}
-          </text>
+          <>
+            <text
+              key={index}
+              x={textX}
+              y={textY}
+              fontSize={fontSize}
+              fill="white"
+              textAnchor="middle"
+              dominantBaseline={index === 0 ? "hanging" : index === 2 ? "auto" : "middle"}
+              transform={`rotate(${rotate}, ${textX}, ${textY})`}
+            >
+              {word}
+            </text>
+            
+          </>
         );
       })}
+
+      {draggingUser && (
+        <text
+          x={0}
+          y={size / 2 + fontSize}
+          fontSize={fontSize * 0.8}
+          fill="black"
+          textAnchor="middle"
+          dominantBaseline="hanging"
+          transform={`rotate(${-rotation * 180 / Math.PI})`}
+        >
+          {draggingUser}
+        </text>
+      )}
     </g>
   );
 };

@@ -6,18 +6,13 @@ import { isEqual } from 'lodash';
 
 const db = init<Schema>({ appId: APP_ID });
 
-interface TileData {
-  x: number;
-  y: number;
-  rotation: number;
-  words: string[];
-}
-
 interface BoardProps {
   roomId: string;
   playerName: string;
   data: any;
 }
+
+type TileData = Room['guessingViewState']['tiles'][number]
 
 const Board: React.FC<BoardProps> = ({ roomId, playerName, data }) => {
   const [gameState, setGameState] = useState<{tiles: TileData[], boardRotation: number}>({
@@ -67,13 +62,13 @@ const Board: React.FC<BoardProps> = ({ roomId, playerName, data }) => {
           } else {
             // Use guessingViewState or initialize below the board for guessing phase
             const existingTile = room.guessingViewState?.tiles?.[index];
-            console.log("EXISTING TILE", existingTile)
             if (existingTile) {
               return {
                 x: existingTile.x || 0,
                 y: existingTile.y || 0,
                 rotation: existingTile.rotation || 0,
-                words: words || []
+                words: words || [],
+                draggingUser: existingTile.draggingUser
               };
             } else {
               return {
@@ -146,10 +141,24 @@ const Board: React.FC<BoardProps> = ({ roomId, playerName, data }) => {
 
   };
 
-  const handleTileMove = (newTiles: TileData[], boardRotation: number) => {
+  const handleTileMove = (moveTileIndex: number, newTiles: TileData[], boardRotation: number) => {
     if (data?.room[0].status === 'cluing') return;
-    notifyServer(newTiles, boardRotation);
+    const newTilesWithDraggingUser = newTiles.map((tile, index) => ({
+      ...tile,
+      // check moveTileIndex
+      draggingUser: moveTileIndex === index ? playerName : undefined
+    }))
+    notifyServer(newTilesWithDraggingUser, boardRotation);
   };
+
+  const handleTileRelease = (newTiles: TileData[], boardRotation: number) => {
+    if (data?.room[0].status === 'cluing') return;
+    const newTilesWithoutDraggingUser = newTiles.map((tile) => ({
+      ...tile,
+      draggingUser: undefined
+    }))
+    notifyServer(newTilesWithoutDraggingUser, boardRotation);
+  }
 
   const handleTileRotate = (index: number) => {
     if (data?.room[0].status === 'cluing') return;
@@ -157,6 +166,7 @@ const Board: React.FC<BoardProps> = ({ roomId, playerName, data }) => {
     const newTiles = [...prevState.tiles];
     newTiles[index] = {
       ...newTiles[index],
+      draggingUser: undefined,
       rotation: newTiles[index].rotation + Math.PI / 2
     };
     notifyServer( newTiles, prevState.boardRotation);
@@ -267,6 +277,7 @@ const Board: React.FC<BoardProps> = ({ roomId, playerName, data }) => {
         boardRotation={gameState.boardRotation}
         edgeInputs={edgeInputs}
         onTileMove={handleTileMove}
+        onTileRelease={handleTileRelease}
         onTileRotate={handleTileRotate}
         onEdgeInputChange={handleEdgeInputChange}
         onBoardRotate={handleBoardRotate}
