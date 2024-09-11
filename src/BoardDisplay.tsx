@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useMemo } from 'react';
 import Tile from './Tile';
 import { Room } from './Types';
 
@@ -226,6 +226,14 @@ const BoardDisplay: React.FC<BoardDisplayProps> = ({
 
   console.log("TILES", tiles)
 
+  const sortedTiles = useMemo(() => {
+    return [...currentState.tiles].sort((a, b) => {
+      if (a.draggingUser && !b.draggingUser) return 1;
+      if (!a.draggingUser && b.draggingUser) return -1;
+      return 0;
+    });
+  }, [currentState.tiles]);
+
   return (
     <svg
       ref={svgRef}
@@ -280,10 +288,10 @@ const BoardDisplay: React.FC<BoardDisplayProps> = ({
         ))}
       </g>
 
-      {currentState.tiles.map((tile, index) => (
+      {sortedTiles.map((tile, index) => (
         <g
           key={index}
-          onPointerDown={(e) => handlePointerDown(e, index)}
+          onPointerDown={(e) => handlePointerDown(e, currentState.tiles.indexOf(tile))}
           style={{ cursor: 'grab' }}
         >
           <Tile

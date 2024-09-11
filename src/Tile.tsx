@@ -15,7 +15,7 @@ const Tile: React.FC<TileProps> = ({ x, y, rotation, size, words, isOnBoard, dra
   const padding = size * 0.11; // Reduced padding
 
   return (
-    <g transform={`translate(${x}, ${y}) rotate(${rotation * 180 / Math.PI})`}>
+    <g transform={`translate(${x}, ${y}) rotate(${rotation * 180 / Math.PI})`} style={{ userSelect: 'none' }}>
       <rect
         x={-size / 2}
         y={-size / 2}
@@ -35,36 +35,45 @@ const Tile: React.FC<TileProps> = ({ x, y, rotation, size, words, isOnBoard, dra
           default: textX = 0; textY = 0; rotate = 0;
         }
         return (
-          <>
-            <text
-              key={index}
-              x={textX}
-              y={textY}
-              fontSize={fontSize}
-              fill="white"
-              textAnchor="middle"
-              dominantBaseline={index === 0 ? "hanging" : index === 2 ? "auto" : "middle"}
-              transform={`rotate(${rotate}, ${textX}, ${textY})`}
-            >
-              {word}
-            </text>
-            
-          </>
+          <text
+            key={index}
+            x={textX}
+            y={textY}
+            fontSize={fontSize}
+            fill="white"
+            textAnchor="middle"
+            dominantBaseline={index === 0 ? "hanging" : index === 2 ? "auto" : "middle"}
+            transform={`rotate(${rotate}, ${textX}, ${textY})`}
+            style={{ userSelect: 'none' }}
+          >
+            {word}
+          </text>
         );
       })}
 
       {draggingUser && (
-        <text
-          x={0}
-          y={size / 2 + fontSize}
-          fontSize={fontSize * 0.8}
-          fill="black"
-          textAnchor="middle"
-          dominantBaseline="hanging"
-          transform={`rotate(${-rotation * 180 / Math.PI})`}
-        >
-          {draggingUser}
-        </text>
+        <g transform={`rotate(${-rotation * 180 / Math.PI})`} style={{ userSelect: 'none' }}>
+          <rect
+            x={-size / 4}
+            y={size / 2}
+            width={size / 2}
+            height={fontSize}
+            fill="white"
+            rx={2}
+            ry={2}
+          />
+          <text
+            x={0}
+            y={size / 2 + fontSize * .5}
+            fontSize={fontSize * 0.8}
+            fill="black"
+            textAnchor="middle"
+            dominantBaseline="middle"
+            style={{ userSelect: 'none' }}
+          >
+            {draggingUser}
+          </text>
+        </g>
       )}
     </g>
   );
