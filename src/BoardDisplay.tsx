@@ -8,6 +8,7 @@ interface BoardDisplayProps {
   tiles: TileData[];
   boardRotation: number;
   edgeInputs: string[];
+  status: Room['status'];
   onTileMove: (movedTileIndex: number, newTiles: TileData[], boardRotation: number) => void;
   onTileRelease: (newTiles: TileData[], boardRotation: number) => void;
   onTileRotate: (index: number) => void;
@@ -19,6 +20,7 @@ const BoardDisplay: React.FC<BoardDisplayProps> = ({
   tiles,
   boardRotation,
   edgeInputs,
+  status,
   onTileMove,
   onTileRelease,
   onTileRotate,
@@ -199,7 +201,7 @@ const BoardDisplay: React.FC<BoardDisplayProps> = ({
 
   const handlePointerUp = (event: React.PointerEvent): void => {
     event.preventDefault();
-    if (tapTimeoutRef.current && draggingTile) {
+    if (tapTimeoutRef.current) {
       clearTimeout(tapTimeoutRef.current);
       onTileRotate(draggingTile.index);
     } else {
@@ -266,8 +268,10 @@ const BoardDisplay: React.FC<BoardDisplayProps> = ({
               <input
                 value={edgeInputs[index]}
                 placeholder={placeholders[index]}
+                disabled={status === 'guessing'}
                 onChange={(e) => onEdgeInputChange(index, e.target.value)}
                 style={{
+                  userSelect: status === 'guessing' ? 'none' : 'auto',
                   width: '100%',
                   height: '100%',
                   textAlign: 'center',

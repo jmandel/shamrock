@@ -274,6 +274,7 @@ const Board: React.FC<BoardProps> = ({ roomId, playerName, data }) => {
     const newComponent = (
       <BoardDisplay 
         tiles={gameState.tiles}
+        status={room.status}
         boardRotation={gameState.boardRotation}
         edgeInputs={edgeInputs}
         onTileMove={handleTileMove}
