@@ -171,10 +171,9 @@ const BoardDisplay: React.FC<BoardDisplayProps> = ({
     event.preventDefault();
     const coords = getSVGCoordinates(event);
     setDraggingTile({ index, startX: coords.x, startY: coords.y, offsetX: currentState.tiles[index].x - coords.x, offsetY: currentState.tiles[index].y - coords.y });
-    
     tapTimeoutRef.current = window.setTimeout(() => {
       tapTimeoutRef.current = null;
-    }, 200);
+    }, 300);
   };
 
   const handlePointerMove = (event: React.PointerEvent): void => {
@@ -182,9 +181,13 @@ const BoardDisplay: React.FC<BoardDisplayProps> = ({
     if (draggingTile !== null) {
       const coords = getSVGCoordinates(event);
       
-      if (tapTimeoutRef.current && (Math.abs(coords.x - draggingTile.startX) > 5 || Math.abs(coords.y - draggingTile.startY) > 5)) {
-        clearTimeout(tapTimeoutRef.current);
-        tapTimeoutRef.current = null;
+      if (tapTimeoutRef.current) {
+        if ((Math.abs(coords.x - draggingTile.startX) > 10 || Math.abs(coords.y - draggingTile.startY) > 10)) {
+          clearTimeout(tapTimeoutRef.current);
+          tapTimeoutRef.current = null;
+        } else {
+          return;
+        }
       }
 
       const newX = coords.x + draggingTile.offsetX;
@@ -201,6 +204,7 @@ const BoardDisplay: React.FC<BoardDisplayProps> = ({
 
   const handlePointerUp = (event: React.PointerEvent): void => {
     event.preventDefault();
+    // alert(`Up ${event.clientX} ${event.clientY} ${draggingTile?.index} ${tapTimeoutRef.current}`)
     if (tapTimeoutRef.current) {
       clearTimeout(tapTimeoutRef.current);
       onTileRotate(draggingTile.index);
@@ -246,7 +250,6 @@ const BoardDisplay: React.FC<BoardDisplayProps> = ({
       style={{ backgroundColor: 'white', touchAction: 'none' }}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
-      onPointerLeave={handlePointerUp}
     >
       <g transform={`rotate(${currentState.boardRotation * 180 / Math.PI}, ${boardCenter.x}, ${boardCenter.y})`}>
         <circle
