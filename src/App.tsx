@@ -4,6 +4,7 @@ import Board from './Board'
 import { APP_ID, Schema, Room } from './Types'
 import { useState, useEffect } from 'react'
 import shamrock from './shamrock.json'
+import React from 'react';
 
 const db = init<Schema>({ appId: APP_ID })
 
@@ -74,7 +75,7 @@ function App() {
 
 function GatheringPhase({ room, myPlayerName, setMyPlayerName }: 
   { room: Room, myPlayerName: string | null, setMyPlayerName: (name: string) => void }) {
-  const [newPlayerName, setNewPlayerName] = useState(myPlayerName);
+  const [newPlayerName, setNewPlayerName] = useState(myPlayerName || '');
 
   useEffect(() => {
     if (Object.keys(room.players || {}).length === 0 && myPlayerName) {
@@ -82,12 +83,11 @@ function GatheringPhase({ room, myPlayerName, setMyPlayerName }:
         setNewPlayerName(myPlayerName);
       }
     }
-  }, [room.players])
+  }, [room.players, myPlayerName, newPlayerName]);
 
   const removePlayer = async (playerName: string) => {
-
     if (playerName === myPlayerName) {
-      setMyPlayerName(myPlayerName);
+      setMyPlayerName('');
       localStorage.removeItem('shamrockPlayerName');
     }
 
@@ -99,10 +99,10 @@ function GatheringPhase({ room, myPlayerName, setMyPlayerName }:
         )
       })
     ]);
-
   };
 
-  const addNewPlayer = () => {
+  const addNewPlayer = (e: React.FormEvent) => {
+    e.preventDefault();
     if (newPlayerName && !(newPlayerName in (room.players || {}))) {
       const addNew = {
         [newPlayerName]: {
@@ -123,10 +123,8 @@ function GatheringPhase({ room, myPlayerName, setMyPlayerName }:
         })
       ]);
 
-      setNewPlayerName('');
       setMyPlayerName(newPlayerName);
       localStorage.setItem('shamrockPlayerName', newPlayerName);
-
     }
   };
 
@@ -153,36 +151,39 @@ function GatheringPhase({ room, myPlayerName, setMyPlayerName }:
   const playersInGame = Object.keys(room.players || {});
 
   return (
-    <div>
-      <h2>Players in the game:</h2>
-      {playersInGame.map(playerName => (
-        <div key={playerName}>
-          {playerName}
-          <button onClick={() => removePlayer(playerName)}>
-            Remove
-          </button>
-          {playerName === myPlayerName && <span> (You)</span>}
-        </div>
-      ))}
+    <div style={styles.gatheringContainer}>
+      <h2 style={styles.title}>Join the Game</h2>
+      <div style={styles.playerList}>
+        <h3 style={styles.subtitle}>Players:</h3>
+        {playersInGame.length === 0 ? (
+          <em>None yet, please join.</em>
+        ) : (
+          playersInGame.map(playerName => (
+            <div key={playerName} style={styles.playerItem}>
+              <span>{playerName}{playerName === myPlayerName && " (You)"}</span>
+              <button onClick={() => removePlayer(playerName)} style={styles.removeButton}>
+                Remove
+              </button>
+            </div>
+          ))
+        )}
+      </div>
       
-      {playersInGame.length === 0 && (
-        <em>None yet, please join.</em>
-      )}
-
       {!playersInGame.includes(myPlayerName || '') && (
-        <div>
+        <form onSubmit={addNewPlayer} style={styles.joinForm}>
           <input
             type="text"
             value={newPlayerName}
             onChange={(e) => setNewPlayerName(e.target.value)}
             placeholder="Enter your name"
+            style={styles.input}
           />
-          <button onClick={addNewPlayer}>
-            Join Game
+          <button type="submit" style={styles.joinButton}>
+            Join&nbsp;Game
           </button>
-        </div>
+        </form>
       )}
-      <button onClick={beginGame} disabled={Object.keys(room.players || {}).length < 1}>
+      <button onClick={beginGame} disabled={playersInGame.length < 1} style={styles.beginButton}>
         Begin Game
       </button>
     </div>
@@ -244,6 +245,74 @@ const styles: Record<string, React.CSSProperties> = {
     border: '1px solid #ccc',
     borderRadius: '3px',
     cursor: 'pointer',
+  },
+  gatheringContainer: {
+    backgroundColor: '#ffffff',
+    borderRadius: '8px',
+    padding: '20px',
+    boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+    maxWidth: '400px',
+    width: '100%',
+  },
+  title: {
+    fontSize: '24px',
+    marginBottom: '20px',
+    textAlign: 'center',
+    color: '#333',
+  },
+  subtitle: {
+    fontSize: '18px',
+    marginBottom: '10px',
+    color: '#555',
+  },
+  playerList: {
+    marginBottom: '20px',
+  },
+  playerItem: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '8px',
+  },
+  removeButton: {
+    backgroundColor: '#ff4d4d',
+    color: 'white',
+    border: 'none',
+    borderRadius: '4px',
+    padding: '4px 8px',
+    cursor: 'pointer',
+    fontSize: '12px',
+  },
+  joinForm: {
+    display: 'flex',
+    marginBottom: '20px',
+  },
+  input: {
+    flex: 1,
+    padding: '8px',
+    fontSize: '16px',
+    borderRadius: '4px',
+    border: '1px solid #ccc',
+    marginRight: '8px',
+  },
+  joinButton: {
+    backgroundColor: '#4CAF50',
+    color: 'white',
+    border: 'none',
+    borderRadius: '4px',
+    padding: '8px 16px',
+    cursor: 'pointer',
+    fontSize: '16px',
+  },
+  beginButton: {
+    backgroundColor: '#2196F3',
+    color: 'white',
+    border: 'none',
+    borderRadius: '4px',
+    padding: '10px 20px',
+    cursor: 'pointer',
+    fontSize: '18px',
+    width: '100%',
   },
 }
 
