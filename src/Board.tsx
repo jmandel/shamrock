@@ -294,14 +294,13 @@ const Board: React.FC<BoardProps> = ({ roomId, playerName, data }) => {
       <div style={{ flex: 1, maxHeight: 'calc(100dvh - 5em)'}}>
         {memoizedBoardDisplay}
       </div>
-      <div style={{
+      <div className="board-controls" style={{
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'center',
         gap: '10px',
         padding: '10px',
-        backgroundColor: '#f0f0f0',
-        borderTop: '1px solid #ccc',
+        borderTop: '1px solid',
         height: '5em'
       }}>
         {isCluing && (
@@ -312,7 +311,7 @@ const Board: React.FC<BoardProps> = ({ roomId, playerName, data }) => {
               style={{
                 padding: '10px 20px',
                 fontSize: '16px',
-                backgroundColor: room.players[playerName]?.readyToGuess ? '#ccc' : '#4CAF50',
+                backgroundColor: room.players[playerName]?.readyToGuess ? '#444' : '#4CAF50',
                 color: 'white',
                 border: 'none',
                 borderRadius: '5px',
@@ -341,13 +340,13 @@ const Board: React.FC<BoardProps> = ({ roomId, playerName, data }) => {
         )}
         {!isCluing && (
           <select
+            className="player-select"
             onChange={(e) => handlePlayerSelect(e.target.value)}
             value={data.room[0].guessingViewState?.playerName || ''}
             style={{
               padding: '10px',
               fontSize: '16px',
               borderRadius: '5px',
-              border: '1px solid #ccc'
             }}
           >
             <option value="">Select a player</option>

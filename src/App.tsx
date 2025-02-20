@@ -54,8 +54,8 @@ function App() {
   };
 
   return (
-    <div style={styles.container}>
-      <div style={styles.gameContainer}>
+    <div className="container">
+      <div className="game-container">
         {currentRoom.status === 'gathering' ? (
           <GatheringPhase 
             room={currentRoom} 
@@ -66,7 +66,7 @@ function App() {
           <Board roomId={currentRoom.id} data={{room: [currentRoom]}} playerName={myPlayerName!} />
         )}
       </div>
-      <button onClick={resetRoom} style={styles.resetButton}>
+      <button onClick={resetRoom} className="reset-button">
         Reset Room
       </button>
     </div>
@@ -151,17 +151,17 @@ function GatheringPhase({ room, myPlayerName, setMyPlayerName }:
   const playersInGame = Object.keys(room.players || {});
 
   return (
-    <div style={styles.gatheringContainer}>
-      <h2 style={styles.title}>Join the Game</h2>
-      <div style={styles.playerList}>
-        <h3 style={styles.subtitle}>Players:</h3>
+    <div className="gathering-container">
+      <h2 className="title">Join the Game</h2>
+      <div className="player-list">
+        <h3 className="subtitle">Players:</h3>
         {playersInGame.length === 0 ? (
           <em>None yet, please join.</em>
         ) : (
           playersInGame.map(playerName => (
-            <div key={playerName} style={styles.playerItem}>
+            <div key={playerName} className="player-item">
               <span>{playerName}{playerName === myPlayerName && " (You)"}</span>
-              <button onClick={() => removePlayer(playerName)} style={styles.removeButton}>
+              <button onClick={() => removePlayer(playerName)} className="remove-button">
                 Remove
               </button>
             </div>
@@ -170,20 +170,20 @@ function GatheringPhase({ room, myPlayerName, setMyPlayerName }:
       </div>
       
       {!playersInGame.includes(myPlayerName || '') && (
-        <form onSubmit={addNewPlayer} style={styles.joinForm}>
+        <form onSubmit={addNewPlayer} className="join-form">
           <input
             type="text"
             value={newPlayerName}
             onChange={(e) => setNewPlayerName(e.target.value)}
             placeholder="Enter your name"
-            style={styles.input}
+            className="input"
           />
-          <button type="submit" style={styles.joinButton}>
+          <button type="submit" className="join-button">
             Join&nbsp;Game
           </button>
         </form>
       )}
-      <button onClick={beginGame} disabled={playersInGame.length < 1} style={styles.beginButton}>
+      <button onClick={beginGame} disabled={playersInGame.length < 1} className="begin-button">
         Begin Game
       </button>
     </div>
@@ -207,113 +207,6 @@ function shuffleArray<T>(array: T[]): T[] {
 function rotateArray<T>(array: T[]): T[] {
   const cutpoint = Math.floor(Math.random() * array.length);
   return [...array.slice(cutpoint), ...array.slice(0, cutpoint)];
-}
-
-const styles: Record<string, React.CSSProperties> = {
-  container: {
-    boxSizing: 'border-box',
-    backgroundColor: '#fafafa',
-    fontFamily: 'code, monospace',
-    maxHeight: '100dvh',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  header: {
-    letterSpacing: '2px',
-    fontSize: '50px',
-    color: 'lightgray',
-    marginBottom: '10px',
-    textAlign: 'center',
-  },
-  gameContainer: {
-    flexGrow: 1,
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    height: 'calc(min(200vw,100dvh))',
-    aspectRatio: '1/2',
-  },
-  resetButton: {
-    position: 'fixed',
-    bottom: '10px',
-    right: '10px',
-    padding: '5px 10px',
-    fontSize: '12px',
-    backgroundColor: '#f0f0f0',
-    border: '1px solid #ccc',
-    borderRadius: '3px',
-    cursor: 'pointer',
-  },
-  gatheringContainer: {
-    backgroundColor: '#ffffff',
-    borderRadius: '8px',
-    padding: '20px',
-    boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-    maxWidth: '400px',
-    width: '100%',
-  },
-  title: {
-    fontSize: '24px',
-    marginBottom: '20px',
-    textAlign: 'center',
-    color: '#333',
-  },
-  subtitle: {
-    fontSize: '18px',
-    marginBottom: '10px',
-    color: '#555',
-  },
-  playerList: {
-    marginBottom: '20px',
-  },
-  playerItem: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '8px',
-  },
-  removeButton: {
-    backgroundColor: '#ff4d4d',
-    color: 'white',
-    border: 'none',
-    borderRadius: '4px',
-    padding: '4px 8px',
-    cursor: 'pointer',
-    fontSize: '12px',
-  },
-  joinForm: {
-    display: 'flex',
-    marginBottom: '20px',
-  },
-  input: {
-    flex: 1,
-    padding: '8px',
-    fontSize: '16px',
-    borderRadius: '4px',
-    border: '1px solid #ccc',
-    marginRight: '8px',
-  },
-  joinButton: {
-    backgroundColor: '#4CAF50',
-    color: 'white',
-    border: 'none',
-    borderRadius: '4px',
-    padding: '8px 16px',
-    cursor: 'pointer',
-    fontSize: '16px',
-  },
-  beginButton: {
-    backgroundColor: '#2196F3',
-    color: 'white',
-    border: 'none',
-    borderRadius: '4px',
-    padding: '10px 20px',
-    cursor: 'pointer',
-    fontSize: '18px',
-    width: '100%',
-  },
 }
 
 export default App

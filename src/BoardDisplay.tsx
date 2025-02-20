@@ -247,7 +247,8 @@ const BoardDisplay: React.FC<BoardDisplayProps> = ({
       height="100%"
       viewBox={`0 0 ${viewBoxWidth} ${viewBoxHeight}`}
       preserveAspectRatio="xMidYMin meet"
-      style={{ backgroundColor: 'white', touchAction: 'none' }}
+      className="board-svg"
+      style={{ touchAction: 'none' }}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
     >
@@ -256,7 +257,7 @@ const BoardDisplay: React.FC<BoardDisplayProps> = ({
           cx={boardCenter.x}
           cy={boardCenter.y}
           r={boardRadius}
-          fill="lightblue"
+          className="board-circle"
           onClick={handleBoardClick}
           style={{ cursor: 'pointer' }}
         />
@@ -269,6 +270,7 @@ const BoardDisplay: React.FC<BoardDisplayProps> = ({
           <foreignObject key={index} x={x} y={y} width={width} height={height}>
             <div style={{ width: '100%', height: '100%' }}>
               <input
+                className="board-input"
                 value={edgeInputs[index]}
                 placeholder={placeholders[index]}
                 disabled={status === 'guessing'}
@@ -278,8 +280,6 @@ const BoardDisplay: React.FC<BoardDisplayProps> = ({
                   width: '100%',
                   height: '100%',
                   textAlign: 'center',
-                  backgroundColor: '#f0f8ff', // Light sky blue color
-                  border: '1px solid #d1d5db',
                   fontSize: '5rem',
                   ...(index === 1 || index === 3 ? {
                     writingMode: 'vertical-rl',
