@@ -202,11 +202,6 @@ function GatheringPhase({ room, myPlayerName, setMyPlayerName }:
   );
 }
 
-function drawTiles(): string[][] {
-  return shuffleArray(shamrock as string[][]).slice(0, 5);
-  // return []
-}
-
 export function shuffleArray<T>(array: T[]): T[] {
   const newArray = [...array]
   for (let i = newArray.length - 1; i > 0; i--) {
