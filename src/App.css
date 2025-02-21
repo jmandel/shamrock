@@ -1,25 +1,13 @@
-:root {
-  --board-circle-fill: #f5f5f5;
-  --board-circle-stroke: #e0e0e0;
-}
-
 @media (prefers-color-scheme: dark) {
   :root {
     color-scheme: dark;
     background-color: #1a1a1a;
     color: #ffffff;
-    --board-circle-fill: #1a1a1a;
-    --board-circle-stroke: #2d2d2d;
   }
 
   /* Board styles */
   .board-svg {
     background-color: #1a1a1a;
-  }
-
-  .board-circle {
-    fill: var(--board-circle-fill);
-    stroke: var(--board-circle-stroke);
   }
 
   .board-input {
@@ -297,7 +285,7 @@ body {
 
 /* Board styles */
 .board-circle {
-  fill: var(--board-circle-fill);
-  stroke: var(--board-circle-stroke);
+  fill: #e0e0e0;
+  stroke: #d0d0d0;
   stroke-width: 1;
 }
