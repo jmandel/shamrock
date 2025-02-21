@@ -3,6 +3,7 @@ import BoardDisplay from './BoardDisplay';
 import { APP_ID, Room, Schema } from './Types';
 import { init, tx } from '@instantdb/react';
 import { isEqual } from 'lodash';
+import { shuffleArray, rotateArray } from './App';
 
 const db = init<Schema>({ appId: APP_ID });
 
@@ -24,6 +25,8 @@ const Board: React.FC<BoardProps> = ({ roomId, playerName, data }) => {
 
   const boardCenter = { x: 500, y: 540 };
   const boardRadius = 450;
+
+  const [numDistractors, setNumDistractors] = useState(1);
 
   useEffect(() => {
     if (!data?.room?.[0]?.players) return;
@@ -71,9 +74,16 @@ const Board: React.FC<BoardProps> = ({ roomId, playerName, data }) => {
                 draggingUser: existingTile.draggingUser
               };
             } else {
+              // Calculate grid layout for up to 10 tiles
+              const numTiles = tilesData.length;
+              const numCols = numTiles <= 6 ? 3 : 4; // Use 4 columns for more than 6 tiles
+              const colIndex = index % numCols;
+              const rowIndex = Math.floor(index / numCols);
+              const tileSpacing = 1000 / numCols;
+              
               return {
-                x: 1000/3/2 + (index % 3) * 1000/3,
-                y: boardCenter.y + boardRadius * 1.6 + Math.floor(index / 3) * (1000/3 + 10),
+                x: tileSpacing/2 + colIndex * tileSpacing,
+                y: boardCenter.y + boardRadius * 1.6 + rowIndex * (tileSpacing + 10),
                 rotation: 0,
                 words: words || []
               };
@@ -191,13 +201,38 @@ const Board: React.FC<BoardProps> = ({ roomId, playerName, data }) => {
     ]);
   };
 
+  const generateGuessedTiles = (player: Room['players'][string], numDistractors: number) => {
+    const distractorTiles = shuffleArray(player.tilesForDistractors).slice(0, numDistractors);
+    const allTiles = [...player.tilesAsClued, ...distractorTiles];
+    return shuffleArray(allTiles.map(rotateArray));
+  };
+
+  const handleNumDistractorsChange = (newNumDistractors: number) => {
+    setNumDistractors(newNumDistractors);
+    const player = room.players[playerName];
+    
+    db.transact([
+      tx.room[roomId].merge({
+        players: {
+          [playerName]: {
+            numDistractors: newNumDistractors,
+            tilesAsGuessed: generateGuessedTiles(player, newNumDistractors)
+          }
+        }
+      })
+    ]);
+  };
+
   const handleReadyClick = () => {
+    const player = room.players[playerName];
+    
     db.transact([
       tx.room[roomId].merge({
         players: {
           [playerName]: {
             readyToGuess: true,
-            clues: edgeInputs
+            clues: edgeInputs,
+            tilesAsGuessed: generateGuessedTiles(player, numDistractors)
           }
         }
       })
@@ -212,13 +247,22 @@ const Board: React.FC<BoardProps> = ({ roomId, playerName, data }) => {
     const selectedPlayer = data.room[0].players[selectedPlayerName];
     console.log("SELECTED PLAYER", selectedPlayer)
     if (selectedPlayer) {
-
-      const newTiles = selectedPlayer.tilesAsGuessed.map((words, index) => ({
-        x: 1000/3/2 + (index % 3) * 1000/3,
-        y: boardCenter.y + boardRadius * 1.6 + Math.floor(index / 3) * (1000/3 + 10),
-        rotation: 0,
-        words: words || []
-      }));
+      const tilesData = selectedPlayer.tilesAsGuessed;
+      const numTiles = tilesData.length;
+      const numCols = numTiles <= 6 ? 3 : 4; // Use 4 columns for more than 6 tiles
+      
+      const newTiles = tilesData.map((words, index) => {
+        const colIndex = index % numCols;
+        const rowIndex = Math.floor(index / numCols);
+        const tileSpacing = 1000 / numCols;
+        
+        return {
+          x: tileSpacing/2 + colIndex * tileSpacing,
+          y: boardCenter.y + boardRadius * 1.6 + rowIndex * (tileSpacing + 10),
+          rotation: 0,
+          words: words || []
+        };
+      });
       console.log("NEW TILES", newTiles)
 
       db.transact(
@@ -305,6 +349,19 @@ const Board: React.FC<BoardProps> = ({ roomId, playerName, data }) => {
       }}>
         {isCluing && (
           <>
+            <select
+              value={numDistractors}
+              onChange={(e) => handleNumDistractorsChange(Number(e.target.value))}
+              style={{
+                padding: '5px',
+                fontSize: '16px',
+                borderRadius: '5px',
+              }}
+            >
+              {[0, 1, 2, 3, 4].map(n => (
+                <option key={n} value={n}>{n} distractor{n !== 1 ? 's' : ''}</option>
+              ))}
+            </select>
             <button 
               disabled={room.players[playerName]?.readyToGuess}
               onClick={handleReadyClick}

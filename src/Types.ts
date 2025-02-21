@@ -27,7 +27,9 @@ export type PlayerData = {
   readyToGuess: boolean,
   readyToJoin: boolean,
   tilesAsClued: string[][],
-  tilesAsGuessed: string[][]
+  tilesForDistractors: string[][],
+  tilesAsGuessed: string[][],
+  numDistractors: number,
   clues: string[]
 }
 

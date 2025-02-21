@@ -44,7 +44,11 @@ const BoardDisplay: React.FC<BoardDisplayProps> = ({
   const topPadding = 120;
   const boardCenter = { x: viewBoxWidth / 2, y: boardRadius + topPadding };
 
-  const tileSize = viewBoxWidth / 3;
+  // Calculate tile size based on number of tiles
+  const numTiles = tiles.length;
+  const numCols = numTiles <= 6 ? 3 : 4;
+  const tileSize = (viewBoxWidth / numCols) - 20; // Add some padding between tiles
+
   const totalFrames = 10;
   const inputHeight = 100;
 

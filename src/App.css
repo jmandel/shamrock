@@ -219,6 +219,12 @@ body {
   width: 100%;
 }
 
+.begin-button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
 /* Dark mode styles */
 @media (prefers-color-scheme: dark) {
   html, 
@@ -271,8 +277,19 @@ body {
     background-color: #1976d2;
   }
 
+  .begin-button:disabled {
+    background-color: #444444;
+  }
+
   .gathering-container {
     background-color: #2d2d2d;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
   }
+}
+
+/* Board styles */
+.board-circle {
+  fill: #f0f0f0;
+  stroke: #e0e0e0;
+  stroke-width: 1;
 }

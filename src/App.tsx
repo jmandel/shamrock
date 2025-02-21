@@ -109,7 +109,10 @@ function GatheringPhase({ room, myPlayerName, setMyPlayerName }:
           readyToGuess: false,
           readyToJoin: false,
           tilesAsClued: [],
-          tilesAsGuessed: []
+          tilesForDistractors: [],
+          tilesAsGuessed: [],
+          numDistractors: 1,
+          clues: []
         }
       }
 
@@ -129,9 +132,9 @@ function GatheringPhase({ room, myPlayerName, setMyPlayerName }:
   };
 
   const beginGame = () => {
-    // Draw all tiles at once for all players
+    // Draw all tiles at once for all players -- now 8 per player (4 clue + 4 potential distractors)
     const numPlayers = Object.keys(room.players || {}).length;
-    const allTiles = shuffleArray(shamrock as string[][]).slice(0, 5 * numPlayers);
+    const allTiles = shuffleArray(shamrock as string[][]).slice(0, 8 * numPlayers);
     
     db.transact([
       tx.room[room.id].update({ 
@@ -140,11 +143,16 @@ function GatheringPhase({ room, myPlayerName, setMyPlayerName }:
         guessingViewState: { boardRotation: 0 },
         players: Object.fromEntries(
           Object.keys(room.players || {}).map((playerName, playerIndex) => {
-            const playerTiles = allTiles.slice(playerIndex * 5, (playerIndex + 1) * 5);
+            const playerTiles = allTiles.slice(playerIndex * 8, (playerIndex + 1) * 8);
             return [playerName, {
               name: playerName,
               tilesAsClued: playerTiles.slice(0, 4).map(rotateArray),
-              tilesAsGuessed: shuffleArray(playerTiles.map(rotateArray))
+              tilesForDistractors: playerTiles.slice(4, 8),
+              tilesAsGuessed: [], // Will be populated when player submits clues
+              readyToGuess: false,
+              readyToJoin: false,
+              numDistractors: 1, // Default value
+              clues: []
             }]
           })
         )
@@ -199,7 +207,7 @@ function drawTiles(): string[][] {
   // return []
 }
 
-function shuffleArray<T>(array: T[]): T[] {
+export function shuffleArray<T>(array: T[]): T[] {
   const newArray = [...array]
   for (let i = newArray.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -208,7 +216,7 @@ function shuffleArray<T>(array: T[]): T[] {
   return newArray
 }
 
-function rotateArray<T>(array: T[]): T[] {
+export function rotateArray<T>(array: T[]): T[] {
   const cutpoint = Math.floor(Math.random() * array.length);
   return [...array.slice(cutpoint), ...array.slice(0, cutpoint)];
 }
