@@ -1,48 +1,10 @@
-@media (prefers-color-scheme: dark) {
-  :root {
-    color-scheme: dark;
-    background-color: #1a1a1a;
-    color: #ffffff;
-  }
-
-  /* Board styles */
-  .board-svg {
-    background-color: #1a1a1a;
-  }
-
-  .board-input {
-    background-color: #333333;
-    color: #ffffff;
-    border-color: #444444;
-  }
-
-  .board-input::placeholder {
-    color: #666666;
-  }
-
-  .board-controls {
-    background-color: #2d2d2d;
-    border-color: #444444;
-  }
-
-  .player-select {
-    background-color: #333333;
-    color: #ffffff;
-    border-color: #444444;
-  }
-
-  .player-select option {
-    background-color: #333333;
-    color: #ffffff;
-  }
-}
-
 @media (prefers-color-scheme: light) {
   :root {
     color-scheme: light;
     background-color: #fafafa;
     color: #000000;
   }
+
 }
 
 html, 
@@ -221,13 +183,61 @@ body {
   opacity: 0.7;
 }
 
+
+/* Board styles */
+.board-circle {
+  fill: #e0e0e0;
+  stroke: #d0d0d0;
+  stroke-width: 1;
+}
 /* Dark mode styles */
 @media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    background-color: #1a1a1a;
+    color: #ffffff;
+  }
+
   html, 
   body, 
   #root,
   .container {
     background-color: #1a1a1a;
+  }
+
+  .board-svg {
+    background-color: #1a1a1a;
+  }
+
+  .board-circle {
+    fill: #1a1a1a;
+    stroke: #2d2d2d;
+  }
+
+  .board-input {
+    background-color: #333333;
+    color: #ffffff;
+    border-color: #444444;
+  }
+
+  .board-input::placeholder {
+    color: #666666;
+  }
+
+  .board-controls {
+    background-color: #2d2d2d;
+    border-color: #444444;
+  }
+
+  .player-select {
+    background-color: #333333;
+    color: #ffffff;
+    border-color: #444444;
+  }
+
+  .player-select option {
+    background-color: #333333;
+    color: #ffffff;
   }
 
   .logo:hover {
@@ -281,11 +291,4 @@ body {
     background-color: #2d2d2d;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
   }
-}
-
-/* Board styles */
-.board-circle {
-  fill: #e0e0e0;
-  stroke: #d0d0d0;
-  stroke-width: 1;
 }
