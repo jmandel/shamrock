@@ -129,18 +129,22 @@ function GatheringPhase({ room, myPlayerName, setMyPlayerName }:
   };
 
   const beginGame = () => {
+    // Draw all tiles at once for all players
+    const numPlayers = Object.keys(room.players || {}).length;
+    const allTiles = shuffleArray(shamrock as string[][]).slice(0, 5 * numPlayers);
+    
     db.transact([
       tx.room[room.id].update({ 
         name: room.name,
         status: 'cluing', 
         guessingViewState: { boardRotation: 0 },
         players: Object.fromEntries(
-          Object.keys(room.players || {}).map(playerName => {
-            const tiles = drawTiles();
+          Object.keys(room.players || {}).map((playerName, playerIndex) => {
+            const playerTiles = allTiles.slice(playerIndex * 5, (playerIndex + 1) * 5);
             return [playerName, {
               name: playerName,
-              tilesAsClued: tiles.slice(0, 4).map(rotateArray),
-              tilesAsGuessed: shuffleArray(tiles.map(rotateArray))
+              tilesAsClued: playerTiles.slice(0, 4).map(rotateArray),
+              tilesAsGuessed: shuffleArray(playerTiles.map(rotateArray))
             }]
           })
         )
