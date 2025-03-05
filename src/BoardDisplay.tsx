@@ -97,6 +97,9 @@ const BoardDisplay: React.FC<BoardDisplayProps> = ({
     return angle - Math.floor(angle / (2 * Math.PI)) * 2 * Math.PI;
   };
 
+  // We're keeping the regular normalizeAngle but not adding the normalizeAngleToRightAngle
+  // function here as that's part of the state normalization done in Board.tsx
+
   const clockwiseAngleBetween = (start: number, end: number): number => {
     start = normalizeAngle(start);
     end = normalizeAngle(end);
@@ -106,12 +109,16 @@ const BoardDisplay: React.FC<BoardDisplayProps> = ({
   const animateRotation = (frame: number): void => {
     if (frame <= totalFrames) {
       const progress = frame / totalFrames;
+      
+      // Ensure the target rotation is normalized to a right angle
       const rotationDiff = clockwiseAngleBetween(prevTargetRef.current.boardRotation, boardRotation);
       const newRotation = prevTargetRef.current.boardRotation + rotationDiff * progress;
 
       const newTiles = currentState.tiles.map((tile, index) => {
         const prevTile = prevTargetRef.current.tiles[index];
         const targetTile = tiles[index];
+        
+        // Ensure tile rotation targets are normalized to right angles
         const rotationDiff = clockwiseAngleBetween(prevTile.rotation, targetTile.rotation);
         const newTile = {
           ...tile,
@@ -124,7 +131,6 @@ const BoardDisplay: React.FC<BoardDisplayProps> = ({
           const angleDiff = clockwiseAngleBetween(startAngle, endAngle);
           const currentAngle = startAngle + angleDiff * progress;
           const distance = Math.sqrt(Math.pow(targetTile.x - boardCenter.x, 2) + Math.pow(targetTile.y - boardCenter.y, 2));
-          console.log("2d", distance, Math.sqrt(Math.pow(prevTile.x - boardCenter.x, 2) + Math.pow(prevTile.y - boardCenter.y, 2)));
 
           newTile.x = boardCenter.x + distance * Math.cos(currentAngle);
           newTile.y = boardCenter.y + distance * Math.sin(currentAngle);
@@ -226,15 +232,21 @@ const BoardDisplay: React.FC<BoardDisplayProps> = ({
     }
   };
 
-  const placeholders = tiles.length > 3 ? [
-    `${tiles[0].words[0]} & ${tiles[1].words[0]}`,
-    `${tiles[1].words[1]} & ${tiles[3].words[1]}`,
-    `${tiles[3].words[2]} & ${tiles[2].words[2]}`,
-    `${tiles[2].words[3]} & ${tiles[0].words[3]}`
+  // This placeholder generation is replaced by the useMemo below
 
-  ] : []
-
-  console.log("TILES", tiles)
+  // Generate placeholders safely, checking for valid tiles with words
+  const placeholders = useMemo(() => {
+    if (!tiles || tiles.length < 4 || !tiles.every(tile => tile && tile.words && tile.words.length >= 4)) {
+      return ["", "", "", ""];
+    }
+    
+    return [
+      `${tiles[0].words[0]} & ${tiles[1].words[0]}`,
+      `${tiles[1].words[1]} & ${tiles[3].words[1]}`,
+      `${tiles[3].words[2]} & ${tiles[2].words[2]}`,
+      `${tiles[2].words[3]} & ${tiles[0].words[3]}`
+    ];
+  }, [tiles])
 
   const sortedTiles = useMemo(() => {
     return [...currentState.tiles].sort((a, b) => {

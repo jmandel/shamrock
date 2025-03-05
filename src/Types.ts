@@ -20,6 +20,10 @@ export type Room = {
       words: string[],
       draggingUser?: string
     }[]
+  },
+  deckState?: {
+    usedTileIndices: number[],
+    totalTiles: number
   }
 }
 

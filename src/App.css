@@ -3,6 +3,11 @@
     color-scheme: light;
     background-color: #fafafa;
     color: #000000;
+    --action-blue: #2196F3;
+    --background-gray: #dddddd;
+    --dropdown-disabled: #333333; /* Darker text for disabled options */
+    --ready-green: #4CAF50;
+    --text-on-dark: white;
   }
 
 }
@@ -120,17 +125,7 @@ body {
   margin-bottom: 8px;
 }
 
-.reset-button {
-  position: fixed;
-  bottom: 10px;
-  right: 10px;
-  padding: 5px 10px;
-  font-size: 12px;
-  background-color: #f0f0f0;
-  border: 1px solid #ccc;
-  border-radius: 3px;
-  cursor: pointer;
-}
+/* Game action styles moved to inline styles in Board.tsx */
 
 .remove-button {
   background-color: #ff4d4d;
@@ -196,6 +191,11 @@ body {
     color-scheme: dark;
     background-color: #1a1a1a;
     color: #ffffff;
+    --action-blue: #1976d2;
+    --background-gray: #444444;
+    --dropdown-disabled: #bbbbbb; /* Lighter text for disabled options */
+    --ready-green: #3d8b40; /* Darker green for dark mode */
+    --text-on-dark: white;
   }
 
   html, 
@@ -255,11 +255,7 @@ body {
     color: #cccccc;
   }
 
-  .reset-button {
-    background-color: #333333;
-    border-color: #444444;
-    color: #ffffff;
-  }
+  /* Action select dropdown styled inline in Board.tsx */
 
   .input {
     background-color: #333333;
