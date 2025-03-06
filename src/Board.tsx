@@ -280,28 +280,21 @@ const Board: React.FC<BoardProps> = ({ roomId, playerName, data, onPlayAgain, on
     return shuffleArray(allTiles.map(rotateArray));
   };
 
-  const handleNumDistractorsChange = (newNumDistractors: number) => {
-    db.transact([
-      tx.room[roomId].merge({
-        players: {
-          [playerName]: {
-            numDistractors: newNumDistractors
-          }
-        }
-      })
-    ]);
-  };
-
-  const handleReadyClick = () => {
+  // handleReadyClick now accepts a numDistractors parameter directly
+  const handleReadyClick = (numDistractors: number) => {
     const currentClues = [...(room.players[playerName]?.clues || ["","","",""])];
+    const thisPlayer = room.players[playerName];
     
     // Generate the tiles with distractors for this player when they mark as ready
-    const tilesAsGuessed = generateGuessedTiles(room.players[playerName], room.players[playerName]?.numDistractors || 1);
+    // Use the provided numDistractors value directly, NOT from the database
+    const tilesAsGuessed = generateGuessedTiles(thisPlayer, numDistractors);
     
+    // Update both numDistractors and readyToGuess in a single transaction
     db.transact([
       tx.room[roomId].merge({
         players: {
           [playerName]: {
+            numDistractors: numDistractors,
             readyToGuess: true,
             clues: currentClues,
             tilesAsGuessed: tilesAsGuessed
@@ -331,59 +324,20 @@ const Board: React.FC<BoardProps> = ({ roomId, playerName, data, onPlayAgain, on
       // Use tilesAsGuessed which includes distractors
       const tilesData = selectedPlayer.tilesAsGuessed;
       
-      // If tilesAsGuessed is empty, fallback to generating them now
+      // IMPORTANT: tilesAsGuessed should only be generated when a player clicks "Ready"
       if (!tilesData || !Array.isArray(tilesData) || tilesData.length === 0) {
-        // Generate tiles with distractors on-the-fly if not already created
-        const generatedTiles = generateGuessedTiles(
-          selectedPlayer, 
-          selectedPlayer.numDistractors || 1
-        );
+        console.log(`Warning: ${selectedPlayerName} has no tilesAsGuessed - they need to click Ready first`);
         
-        // First save the generated tiles
-        db.transact([
-          tx.room[roomId].merge({
-            players: {
-              [selectedPlayerName]: {
-                tilesAsGuessed: generatedTiles
-              }
-            }
-          })
-        ]);
-        
-        // Then proceed with these generated tiles
-        const numTiles = generatedTiles.length;
-        const numCols = numTiles <= 6 ? 3 : 4;
-        
-        // Create new tiles arrangement for the selected player
-        const newTiles = generatedTiles.map((words, index) => {
-          const colIndex = index % numCols;
-          const rowIndex = Math.floor(index / numCols);
-          const tileSpacing = 1000 / numCols;
-          
-          return {
-            x: tileSpacing/2 + colIndex * tileSpacing,
-            y: boardCenter.y + boardRadius * 1.6 + rowIndex * (tileSpacing + 10),
-            rotation: 0,
-            words: words || []
-          };
-        });
-        
-        // Normalize tiles to ensure right-angle rotations
-        const normalizedTiles = newTiles.map(tile => ({
-          ...tile,
-          rotation: normalizeToRightAngle(tile.rotation)
-        }));
-        
-        // Update in a single transaction with a complete guessingViewState
+        // Player hasn't clicked Ready yet, so set their name but don't display any tiles
         db.transact(tx.room[roomId].merge({
           guessingViewState: {
             playerName: selectedPlayerName,
-            tiles: normalizedTiles,
-            boardRotation: 0 // Starting rotation is already at a right angle
+            tiles: [], // Empty tiles since there's nothing to display yet
+            boardRotation: 0
           }
         }));
       } else {
-        // Use the existing tilesAsGuessed
+        // Use the existing tilesAsGuessed - never regenerate them here
         const numTiles = tilesData.length;
         const numCols = numTiles <= 6 ? 3 : 4;
         
@@ -507,12 +461,12 @@ const Board: React.FC<BoardProps> = ({ roomId, playerName, data, onPlayAgain, on
                     return;
                   }
                   
-                  // First update the distractor count
+                  // Parse the selected number of distractors
                   const count = parseInt(e.target.value);
-                  handleNumDistractorsChange(count);
                   
-                  // Then mark as ready
-                  setTimeout(() => handleReadyClick(), 0);
+                  // Call handleReadyClick directly with the distractor count
+                  // This ensures the count is used immediately without relying on database state
+                  handleReadyClick(count);
                   
                   // Reset dropdown
                   e.target.value = 'not-ready';
@@ -647,7 +601,7 @@ const Board: React.FC<BoardProps> = ({ roomId, playerName, data, onPlayAgain, on
               </>
             )}
             <option value="play-again">Re-deal{room.deckState ? ` (${deckStats.remaining}/${deckStats.total})` : ''}</option>
-            <option value="reset">Reset Room</option>
+            <option value="reset">New Game</option>
           </select>
         </div>
       </div>

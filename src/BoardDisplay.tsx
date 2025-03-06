@@ -288,7 +288,7 @@ const BoardDisplay: React.FC<BoardDisplayProps> = ({
               <input
                 className="board-input"
                 value={edgeInputs[index]}
-                placeholder={placeholders[index]}
+                placeholder={status === 'guessing' ? '' : placeholders[index]}
                 disabled={status === 'guessing'}
                 onChange={(e) => onEdgeInputChange(index, e.target.value)}
                 style={{
