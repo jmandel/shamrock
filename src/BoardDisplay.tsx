@@ -71,12 +71,23 @@ const BoardDisplay: React.FC<BoardDisplayProps> = ({
       cancelAnimationFrame(animationIdRef.current);
       animationIdRef.current = null;
     }
+    
+    // Check if the number of tiles has changed (like after a redeal)
+    const tileCountChanged = tiles.length !== prevTargetRef.current.tiles.length;
+    
+    // If tile count changed, immediately update without animation
+    if (tileCountChanged) {
+      isAnimatingRef.current = false;
+      updateStateWithoutAnimation(tiles, boardRotation);
+      return;
+    }
 
     const rotationChanged = boardRotation !== prevTargetRef.current.boardRotation;
     const tilesChanged = JSON.stringify(tiles) !== JSON.stringify(prevTargetRef.current.tiles);
     const onlyPositionsChanged = tilesChanged && !rotationChanged && 
       tiles.every((tile, index) => 
-        tile.rotation === prevTargetRef.current.tiles[index]?.rotation);
+        prevTargetRef.current.tiles[index] && 
+        tile.rotation === prevTargetRef.current.tiles[index].rotation);
 
     if (rotationChanged || (tilesChanged && !onlyPositionsChanged)) {
       isAnimatingRef.current = true;
@@ -115,17 +126,21 @@ const BoardDisplay: React.FC<BoardDisplayProps> = ({
       const newRotation = prevTargetRef.current.boardRotation + rotationDiff * progress;
 
       const newTiles = currentState.tiles.map((tile, index) => {
-        const prevTile = prevTargetRef.current.tiles[index];
-        const targetTile = tiles[index];
+        // Safely access previous and target tiles
+        const prevTile = prevTargetRef.current.tiles[index] || tile;
+        const targetTile = tiles[index] || tile;
         
-        // Ensure tile rotation targets are normalized to right angles
-        const rotationDiff = clockwiseAngleBetween(prevTile.rotation, targetTile.rotation);
+        // Only calculate rotation diff if both tiles exist
+        const rotationDiff = prevTile && targetTile 
+          ? clockwiseAngleBetween(prevTile.rotation, targetTile.rotation)
+          : 0;
+          
         const newTile = {
           ...tile,
-          rotation: prevTile.rotation + rotationDiff * progress,
+          rotation: prevTile ? prevTile.rotation + rotationDiff * progress : tile.rotation,
         };
 
-        if (isOnBoard(prevTile.x, prevTile.y)) {
+        if (prevTile && targetTile && isOnBoard(prevTile.x, prevTile.y)) {
           const startAngle = Math.atan2(prevTile.y - boardCenter.y, prevTile.x - boardCenter.x);
           const endAngle = Math.atan2(targetTile.y - boardCenter.y, targetTile.x - boardCenter.x);
           const angleDiff = clockwiseAngleBetween(startAngle, endAngle);
@@ -134,7 +149,7 @@ const BoardDisplay: React.FC<BoardDisplayProps> = ({
 
           newTile.x = boardCenter.x + distance * Math.cos(currentAngle);
           newTile.y = boardCenter.y + distance * Math.sin(currentAngle);
-        } else {
+        } else if (prevTile && targetTile) {
           newTile.x = prevTile.x + (targetTile.x - prevTile.x) * progress;
           newTile.y = prevTile.y + (targetTile.y - prevTile.y) * progress;
         }

@@ -115,13 +115,24 @@ const Board: React.FC<BoardProps> = ({ roomId, playerName, data, onPlayAgain, on
     }
   };
 
-  // Initialize cluing tiles if needed
+  // Initialize cluing tiles if needed or if they've changed (like after a redeal)
   useEffect(() => {
-    if (isCluing && cluingTiles.length === 0) {
+    if (isCluing) {
       const thisPlayer = room.players[playerName];
       const tilesData = thisPlayer?.tilesAsClued;
       
-      if (tilesData && Array.isArray(tilesData)) {
+      // Create an ID based on tileDatas content to track when tiles change
+      const tilesDataId = JSON.stringify(tilesData);
+      
+      // Initialize tiles in these scenarios:
+      // 1. No tiles yet (first load)
+      // 2. Player got new tiles (after redeal)
+      const shouldInitializeTiles = 
+        cluingTiles.length === 0 || 
+        (tilesData && tilesData.length > 0 && 
+         JSON.stringify(cluingTiles.map(t => t.words)) !== tilesDataId);
+      
+      if (shouldInitializeTiles && tilesData && Array.isArray(tilesData)) {
         // Initialize tiles in four quadrants
         const initialTiles = tilesData.map((words, index) => {
           const quadrant = index % 4;
@@ -131,9 +142,10 @@ const Board: React.FC<BoardProps> = ({ roomId, playerName, data, onPlayAgain, on
         });
         
         setCluingTiles(initialTiles);
+        setCluingBoardRotation(0); // Reset board rotation
       }
     }
-  }, [isCluing, room.players, playerName, cluingTiles.length, boardCenter.x, boardCenter.y, boardRadius]);
+  }, [isCluing, room.players, playerName, cluingTiles, boardCenter.x, boardCenter.y, boardRadius]);
 
   const getCurrentTiles = (): TileData[] => {
     // Common function to get current tiles based on game state
