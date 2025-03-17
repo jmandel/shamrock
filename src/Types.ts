@@ -37,4 +37,4 @@ export type PlayerData = {
   clues: string[]
 }
 
-export const APP_ID = '9b4e1429-257b-48ed-bb58-a0572123b2f0' // # '8b53d611-dba7-4812-8800-8cf0dda28a5e'
+export const APP_ID = '8b53d611-dba7-4812-8800-8cf0dda28a5e'
