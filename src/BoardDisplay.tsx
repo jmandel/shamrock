@@ -298,7 +298,14 @@ const BoardDisplay: React.FC<BoardDisplayProps> = ({
           { x: boardCenter.x - boardRadius, y: boardCenter.y + boardRadius, width: boardRadius * 2, height: inputHeight, index: 2 },
           { x: boardCenter.x - boardRadius - inputHeight, y: boardCenter.y - boardRadius, width: inputHeight, height: boardRadius * 2, index: 3 }
         ].map(({ x, y, width, height, index }) => (
-          <foreignObject key={index} x={x} y={y} width={width} height={height}>
+          <foreignObject 
+            key={index} 
+            x={x} 
+            y={y} 
+            width={width} 
+            height={height} 
+            transform={index === 2 || index === 3 ? `rotate(180, ${x + width/2}, ${y + height/2})` : ''}
+          >
             <div style={{ width: '100%', height: '100%' }}>
               <input
                 className="board-input"
@@ -316,9 +323,7 @@ const BoardDisplay: React.FC<BoardDisplayProps> = ({
                     writingMode: 'vertical-rl',
                     textOrientation: 'mixed',
                   } : {}),
-                  ...(index === 2 || index === 3 ? {
-                    transform: 'rotate(180deg)',
-                  } : {})
+                  /* Transform is now handled at the foreignObject level */
                 }}
               />
             </div>
