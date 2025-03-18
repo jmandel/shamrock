@@ -461,7 +461,8 @@ const Board: React.FC<BoardProps> = ({ roomId, playerName, data, onPlayAgain, on
         height: '3.5em',
         overflow: 'hidden',
         whiteSpace: 'nowrap',
-        gap: '12px'
+        gap: '12px',
+        marginBottom: '20px'
       }}>
         {isCluing ? (
           <>
