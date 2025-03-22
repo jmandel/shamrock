@@ -3,6 +3,7 @@ import BoardDisplay from './BoardDisplay';
 import { APP_ID, Room, Schema } from './Types';
 import { init, tx } from '@instantdb/react';
 import { shuffleArray, rotateArray } from './App';
+import './App.css';
 
 const db = init<Schema>({ appId: APP_ID });
 
@@ -418,23 +419,10 @@ const Board: React.FC<BoardProps> = ({ roomId, playerName, data, onPlayAgain, on
   
   const deckStats = calculateDeckStats();
   return (
-    <div style={{ display: 'flex', flexDirection: 'column',  height: '100%', width: 'min(100vw, 50dvh)' }}>
-      <div style={{ flex: 1, maxHeight: 'calc(100dvh - 3.5em)', position: 'relative'}}>
-        {/* Deck statistics indicator removed from here */}
-        
+    <div className="board-container">
+      <div className="board-display-container">
         {showPlayerSelectionMessage ? (
-          <div style={{
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            textAlign: 'center',
-            padding: '20px',
-            background: 'rgba(0,0,0,0.5)',
-            color: 'white',
-            borderRadius: '8px',
-            maxWidth: '80%'
-          }}>
+          <div className="player-selection-message">
             <h3>Select a player to begin</h3>
             <p>Use the dropdown below to choose whose board to view</p>
           </div>
@@ -452,18 +440,7 @@ const Board: React.FC<BoardProps> = ({ roomId, playerName, data, onPlayAgain, on
           />
         )}
       </div>
-      <div className="board-controls" style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: '8px',
-        borderTop: '1px solid',
-        height: '3.5em',
-        overflow: 'hidden',
-        whiteSpace: 'nowrap',
-        gap: '12px',
-        marginBottom: '220px'
-      }}>
+      <div className="board-controls">
         {isCluing ? (
           <>
             {!room.players[playerName]?.readyToGuess && (
@@ -485,25 +462,7 @@ const Board: React.FC<BoardProps> = ({ roomId, playerName, data, onPlayAgain, on
                   e.target.value = 'not-ready';
                 }}
                 value="not-ready"
-                style={{
-                  padding: '4px 8px',
-                  fontSize: '14px',
-                  borderRadius: '4px',
-                  backgroundColor: 'var(--ready-green)',
-                  color: 'var(--text-on-dark)',
-                  border: 'none',
-                  cursor: 'pointer',
-                  appearance: 'none',
-                  WebkitAppearance: 'none',
-                  MozAppearance: 'none',
-                  backgroundImage: 'url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'white\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3e%3cpolyline points=\'6 9 12 15 18 9\'%3e%3c/polyline%3e%3c/svg%3e")',
-                  backgroundRepeat: 'no-repeat',
-                  backgroundPosition: 'right 4px center',
-                  backgroundSize: '12px',
-                  paddingRight: '24px',
-                  flex: 1,
-                  height: '32px'
-                }}
+                className="ready-dropdown"
               >
                 <option value="not-ready">Ready...</option>
                 {[1, 2, 3, 4].map(n => (
@@ -511,82 +470,29 @@ const Board: React.FC<BoardProps> = ({ roomId, playerName, data, onPlayAgain, on
                 ))}
               </select>
             )}
-            <div
-              style={{
-                position: 'relative',
-                display: 'inline-block',
-                flex: 1
-              }}
-            >
+            <div className="proceed-button-container">
               <button 
                 onClick={handleProceedToGuessing}
                 disabled={!allPlayersReady}
-                style={{
-                  padding: '4px 12px',
-                  fontSize: '14px',
-                  backgroundColor: 'transparent', // Transparent background
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: allPlayersReady ? 'pointer' : 'not-allowed',
-                  position: 'relative',
-                  zIndex: 1, // Place text above the progress bar
-                  height: '32px',
-                  width: '100%' // Full width of parent
-                }}
+                className="proceed-button"
               >
                 Proceed
               </button>
               {/* Background - always full width in gray */}
-              <div style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                bottom: 0,
-                width: '100%',
-                backgroundColor: 'var(--background-gray)',
-                borderRadius: '4px',
-                zIndex: 0
-              }}></div>
+              <div className="progress-bar-background"></div>
               {/* Progress fill - partial width based on ready players */}
-              <div style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                bottom: 0,
-                width: `${(getReadyPlayerFraction() * 100)}%`,
-                backgroundColor: 'var(--action-blue)',
-                borderRadius: '4px',
-                transition: 'width 0.3s ease',
-                zIndex: 0
-              }}></div>
+              <div 
+                className="progress-bar-fill" 
+                style={{ width: `${(getReadyPlayerFraction() * 100)}%` }}
+              ></div>
             </div>
           </>
         ) : null}
         
         {/* Action button with dropdown always visible at the end */}
-        <div style={{ flex: isCluing ? 1 : '100%' }}>
+        <div className="action-container" style={{ flex: isCluing ? 1 : '100%' }}>
           <select 
-            style={{
-              padding: '4px 8px',
-              fontSize: '14px',
-              borderRadius: '4px',
-              backgroundColor: 'var(--ready-green)',
-              color: 'var(--text-on-dark)',
-              border: 'none',
-              cursor: 'pointer',
-              appearance: 'none',
-              WebkitAppearance: 'none',
-              MozAppearance: 'none',
-              backgroundImage: 'url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'white\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3e%3cpolyline points=\'6 9 12 15 18 9\'%3e%3c/polyline%3e%3c/svg%3e")',
-              backgroundRepeat: 'no-repeat',
-              backgroundPosition: 'right 4px center',
-              backgroundSize: '12px',
-              paddingRight: '24px',
-              minWidth: '140px', // Ensure it's wide enough for indented options
-              height: '32px',
-              width: '100%' // Make it fill the parent div
-            }}
+            className="action-dropdown"
             onChange={(e) => {
               if (e.target.value === 'play-again') {
                 onPlayAgain();
@@ -601,16 +507,16 @@ const Board: React.FC<BoardProps> = ({ roomId, playerName, data, onPlayAgain, on
             }}
             value=""
           >
-            <option value="" disabled style={{ color: 'var(--dropdown-disabled)' }}>Actions</option>
+            <option value="" disabled className="dropdown-disabled">Actions</option>
             {!isCluing && (
               <>
-                <option value="" disabled style={{ paddingLeft: '8px', fontWeight: 'bold', color: 'var(--dropdown-disabled)' }}>― Guess ―</option>
+                <option value="" disabled className="dropdown-section">― Guess ―</option>
                 {Object.keys(room.players).map((name) => (
-                  <option key={name} value={`player-${name}`} style={{ paddingLeft: '16px' }}>
+                  <option key={name} value={`player-${name}`} className="dropdown-option">
                     {name}{room.guessingViewState?.playerName === name ? ' ✓' : ''}
                   </option>
                 ))}
-                <option value="" disabled style={{ color: 'var(--dropdown-disabled)' }}>―――――</option>
+                <option value="" disabled className="dropdown-disabled">―――――</option>
               </>
             )}
             <option value="play-again">Re-deal{room.deckState ? ` (${deckStats.remaining}/${deckStats.total})` : ''}</option>

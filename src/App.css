@@ -16,7 +16,7 @@ html,
 body, 
 #root {
   background-color: var(--background-color, #fafafa);
-  min-height: 100vh;
+  min-height: 100dvh;
 }
 
 html {
@@ -72,24 +72,19 @@ body {
 
 /* Base styles */
 .container {
-  box-sizing: border-box;
+  flex-grow: 1;
   background-color: var(--background-color, #fafafa);
   font-family: code, monospace;
-  max-height: 100dvh;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
 }
 
 .game-container {
-  flex-grow: 1;
+  /* flex-grow: 1; */
   display: flex;
   justify-content: center;
   align-items: center;
-  height: calc(min(200vw,100dvh));
-  aspect-ratio: 1/2;
+  height: 100dvh;
+  /* height: calc(min(200vw,100dvh)); */
+  /* aspect-ratio: 1/2; */
 }
 
 .gathering-container {
@@ -287,4 +282,145 @@ body {
     background-color: #2d2d2d;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
   }
+}
+
+/* Board Component Styles */
+.board-container {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+}
+
+.board-display-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  max-height: calc(100dvh - 2em); 
+  position: relative;
+}
+
+.player-selection-message {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  padding: 20px;
+  background: rgba(0,0,0,0.5);
+  color: white;
+  border-radius: 8px;
+  max-width: 80%;
+}
+
+.board-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.ready-dropdown {
+  padding: 4px 8px;
+  font-size: 14px;
+  border-radius: 4px;
+  background-color: var(--ready-green);
+  color: var(--text-on-dark);
+  border: none;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 4px center;
+  background-size: 12px;
+  padding-right: 24px;
+  flex: 1;
+  height: 32px;
+}
+
+.proceed-button-container {
+  position: relative;
+  display: inline-block;
+  flex: 1;
+}
+
+.proceed-button {
+  padding: 4px 12px;
+  font-size: 14px;
+  background-color: transparent;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  position: relative;
+  z-index: 1;
+  height: 32px;
+  width: 100%;
+}
+
+.proceed-button:disabled {
+  cursor: not-allowed;
+}
+
+.progress-bar-background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  background-color: var(--background-gray);
+  border-radius: 4px;
+  z-index: 0;
+}
+
+.progress-bar-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 0;
+  background-color: var(--action-blue);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+  z-index: 0;
+}
+
+.action-container {
+  flex: 1;
+}
+
+.action-dropdown {
+  padding: 4px 8px;
+  font-size: 14px;
+  border-radius: 4px;
+  background-color: var(--ready-green);
+  color: var(--text-on-dark);
+  border: none;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 4px center;
+  background-size: 12px;
+  padding-right: 24px;
+  min-width: 140px;
+  height: 32px;
+  width: 100%;
+}
+
+.dropdown-disabled {
+  color: var(--dropdown-disabled);
+}
+
+.dropdown-section {
+  padding-left: 8px;
+  font-weight: bold;
+  color: var(--dropdown-disabled);
+}
+
+.dropdown-option {
+  padding-left: 16px;
 }
