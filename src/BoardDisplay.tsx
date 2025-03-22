@@ -311,7 +311,7 @@ const BoardDisplay: React.FC<BoardDisplayProps> = ({
                 className="board-input"
                 value={edgeInputs[index]}
                 placeholder={status === 'guessing' ? '' : placeholders[index]}
-                disabled={status === 'guessing'}
+                disabled={/iPad|iPhone|iPod/.test(navigator.userAgent) ? false : status === 'guessing'}
                 onChange={(e) => onEdgeInputChange(index, e.target.value)}
                 style={{
                   userSelect: status === 'guessing' ? 'none' : 'auto',
