@@ -309,7 +309,8 @@ const BoardDisplay: React.FC<BoardDisplayProps> = ({
             <div style={{ width: '100%', height: '100%' }}>
               <input
                 className="board-input"
-                value={edgeInputs[index]}
+                // Ensure value is always a string; blank if undefined (e.g., after redeal)
+                value={edgeInputs[index] ?? ''}
                 placeholder={status === 'guessing' ? '' : placeholders[index]}
                 disabled={/iPad|iPhone|iPod/.test(navigator.userAgent) ? false : status === 'guessing'}
                 onChange={(e) => onEdgeInputChange(index, e.target.value)}
