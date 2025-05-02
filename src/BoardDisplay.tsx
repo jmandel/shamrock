@@ -108,21 +108,23 @@ const BoardDisplay: React.FC<BoardDisplayProps> = ({
     return angle - Math.floor(angle / (2 * Math.PI)) * 2 * Math.PI;
   };
 
-  // We're keeping the regular normalizeAngle but not adding the normalizeAngleToRightAngle
-  // function here as that's part of the state normalization done in Board.tsx
+// Compute signed smallest angular difference (in range -π..π]
+const signedAngleDiff = (start: number, end: number): number => {
+  const a = normalizeAngle(start);
+  const b = normalizeAngle(end);
+  let diff = b - a;
+  if (diff > Math.PI) diff -= 2 * Math.PI;
+  else if (diff <= -Math.PI) diff += 2 * Math.PI;
+  return diff;
+};
 
-  const clockwiseAngleBetween = (start: number, end: number): number => {
-    start = normalizeAngle(start);
-    end = normalizeAngle(end);
-    return (end - start + 2 * Math.PI) % (2 * Math.PI);
-  };
 
   const animateRotation = (frame: number): void => {
     if (frame <= totalFrames) {
       const progress = frame / totalFrames;
       
-      // Ensure the target rotation is normalized to a right angle
-      const rotationDiff = clockwiseAngleBetween(prevTargetRef.current.boardRotation, boardRotation);
+      // Compute minimal signed rotation difference for board
+      const rotationDiff = signedAngleDiff(prevTargetRef.current.boardRotation, boardRotation);
       const newRotation = prevTargetRef.current.boardRotation + rotationDiff * progress;
 
       const newTiles = currentState.tiles.map((tile, index) => {
@@ -130,11 +132,10 @@ const BoardDisplay: React.FC<BoardDisplayProps> = ({
         const prevTile = prevTargetRef.current.tiles[index] || tile;
         const targetTile = tiles[index] || tile;
         
-        // Only calculate rotation diff if both tiles exist
-        const rotationDiff = prevTile && targetTile 
-          ? clockwiseAngleBetween(prevTile.rotation, targetTile.rotation)
+        // Always rotate tiles in clockwise (positive) direction by raw delta
+        const rotationDiff = (prevTile && targetTile)
+          ? targetTile.rotation - prevTile.rotation
           : 0;
-          
         const newTile = {
           ...tile,
           rotation: prevTile ? prevTile.rotation + rotationDiff * progress : tile.rotation,
@@ -143,7 +144,8 @@ const BoardDisplay: React.FC<BoardDisplayProps> = ({
         if (prevTile && targetTile && isOnBoard(prevTile.x, prevTile.y)) {
           const startAngle = Math.atan2(prevTile.y - boardCenter.y, prevTile.x - boardCenter.x);
           const endAngle = Math.atan2(targetTile.y - boardCenter.y, targetTile.x - boardCenter.x);
-          const angleDiff = clockwiseAngleBetween(startAngle, endAngle);
+          // Compute signed minimal angular path for radial movement
+          const angleDiff = signedAngleDiff(startAngle, endAngle);
           const currentAngle = startAngle + angleDiff * progress;
           const distance = Math.sqrt(Math.pow(targetTile.x - boardCenter.x, 2) + Math.pow(targetTile.y - boardCenter.y, 2));
 
@@ -307,8 +309,8 @@ const BoardDisplay: React.FC<BoardDisplayProps> = ({
             transform={index === 2 || index === 3 ? `rotate(180, ${x + width/2}, ${y + height/2})` : ''}
           >
             <div style={{ width: '100%', height: '100%' }}>
-              <input
-                className="board-input"
+               <input
+                 className="board-input"
                 // Ensure value is always a string; blank if undefined (e.g., after redeal)
                 value={edgeInputs[index] ?? ''}
                 placeholder={status === 'guessing' ? '' : placeholders[index]}
@@ -319,7 +321,7 @@ const BoardDisplay: React.FC<BoardDisplayProps> = ({
                   width: '100%',
                   height: '100%',
                   textAlign: 'center',
-                  fontSize: '5rem',
+                  fontSize: '4.8rem',
                   ...(index === 1 || index === 3 ? {
                     writingMode: 'vertical-rl',
                     textOrientation: 'mixed',
