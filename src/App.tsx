@@ -147,7 +147,7 @@ function App() {
           <Board 
             roomId={currentRoom.id} 
             data={{room: [currentRoom]}} 
-            playerName={myPlayerName!}
+            playerName={myPlayerName}
             onPlayAgain={playAgain}
             onResetRoom={resetRoom}
           />
