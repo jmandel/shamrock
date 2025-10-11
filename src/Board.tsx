@@ -9,8 +9,8 @@ const db = init<Schema>({ appId: APP_ID });
 
 interface BoardProps {
   roomId: string;
-  playerName: string;
-  data: any;
+  playerName: string | null;
+  data: { room: Room[] };
   onPlayAgain: () => void;
   onResetRoom: () => void;
 }
@@ -21,26 +21,19 @@ const Board: React.FC<BoardProps> = ({ roomId, playerName, data, onPlayAgain, on
   const boardCenter = { x: 500, y: 540 };
   const boardRadius = 450;
 
-  const room = data?.room?.[0] as Room;
-  if (!room || !room.players) return <div>Loading...</div>;
+  // Add local state for cluing phase
+  const [cluingBoardRotation, setCluingBoardRotation] = useState(0);
+  const [cluingTiles, setCluingTiles] = useState<TileData[]>([]);
 
-  const isCluing = room.status === 'cluing';
-  const allPlayersReady = Object.values(room.players).every(player => player.readyToGuess);
-  
-  // Get the fraction of ready players (0 to 1)
-  const getReadyPlayerFraction = () => {
-    const totalPlayers = Object.keys(room.players).length;
-    const readyPlayers = Object.values(room.players).filter(player => player.readyToGuess).length;
-    return totalPlayers > 0 ? readyPlayers / totalPlayers : 0;
-  };
-  
+  const room = data?.room?.[0] as Room;
+
   // Helper function to normalize angle to right angle (multiple of PI/2)
   const normalizeToRightAngle = (angle: number): number => {
     return Math.round(angle / (Math.PI / 2)) * (Math.PI / 2);
   };
 
   const notifyServer = useCallback((newTiles: TileData[], newBoardRotation: number) => {
-    if (room.status !== 'guessing') {
+    if (!room || room.status !== 'guessing') {
       return;
     }
     
@@ -60,13 +53,63 @@ const Board: React.FC<BoardProps> = ({ roomId, playerName, data, onPlayAgain, on
         }
       })
     );
-  }, [roomId, room.status, room.guessingViewState?.playerName]);
+  }, [roomId, room?.status, room?.guessingViewState?.playerName]);
+  
+  // Initialize cluing tiles if needed or if they've changed (like after a redeal)
+  useEffect(() => {
+    if (!room || !room.players) return;
+    
+    const isSpectator = !playerName || !(playerName in room.players);
+    const isCluing = room.status === 'cluing';
+    
+    if (isCluing && !isSpectator) {
+      const thisPlayer = room.players[playerName!];
+      const tilesData = thisPlayer?.tilesAsClued;
+      
+      // Create an ID based on tileDatas content to track when tiles change
+      const tilesDataId = JSON.stringify(tilesData);
+      
+      // Initialize tiles in these scenarios:
+      // 1. No tiles yet (first load)
+      // 2. Player got new tiles (after redeal)
+      const shouldInitializeTiles = 
+        cluingTiles.length === 0 || 
+        (tilesData && tilesData.length > 0 && 
+         JSON.stringify(cluingTiles.map(t => t.words)) !== tilesDataId);
+      
+      if (shouldInitializeTiles && tilesData && Array.isArray(tilesData)) {
+        // Initialize tiles in four quadrants
+        const initialTiles = tilesData.map((words, index) => {
+          const quadrant = index % 4;
+          const x = boardCenter.x + (quadrant % 2 === 0 ? -1 : 1) * boardRadius / 2;
+          const y = boardCenter.y + (quadrant < 2 ? -1 : 1) * boardRadius / 2;
+          return { x, y, rotation: 0, words: words || [] };
+        });
+        
+        setCluingTiles(initialTiles);
+        setCluingBoardRotation(0); // Reset board rotation
+      }
+    }
+  }, [room, playerName, cluingTiles, boardCenter.x, boardCenter.y, boardRadius]);
 
-  // Add local state for cluing phase
-  const [cluingBoardRotation, setCluingBoardRotation] = useState(0);
-  const [cluingTiles, setCluingTiles] = useState<TileData[]>([]);
+  if (!room || !room.players) return <div>Loading...</div>;
+
+  // Check if user is a spectator (not a player in the game)
+  const isSpectator = !playerName || !(playerName in room.players);
+  const isCluing = room.status === 'cluing';
+  const allPlayersReady = Object.values(room.players).every(player => player.readyToGuess);
+  
+  // Get the fraction of ready players (0 to 1)
+  const getReadyPlayerFraction = () => {
+    const totalPlayers = Object.keys(room.players).length;
+    const readyPlayers = Object.values(room.players).filter(player => player.readyToGuess).length;
+    return totalPlayers > 0 ? readyPlayers / totalPlayers : 0;
+  };
   
   const handleBoardRotate = (): void => {
+    // Spectators cannot rotate the board
+    if (isSpectator && !isCluing) return;
+    
     // Use local rotation state for cluing, server state for guessing
     const currentBoardRotation = isCluing ? cluingBoardRotation : (room.guessingViewState?.boardRotation || 0);
     const currentTiles = getCurrentTiles();
@@ -116,48 +159,21 @@ const Board: React.FC<BoardProps> = ({ roomId, playerName, data, onPlayAgain, on
     }
   };
 
-  // Initialize cluing tiles if needed or if they've changed (like after a redeal)
-  useEffect(() => {
-    if (isCluing) {
-      const thisPlayer = room.players[playerName];
-      const tilesData = thisPlayer?.tilesAsClued;
-      
-      // Create an ID based on tileDatas content to track when tiles change
-      const tilesDataId = JSON.stringify(tilesData);
-      
-      // Initialize tiles in these scenarios:
-      // 1. No tiles yet (first load)
-      // 2. Player got new tiles (after redeal)
-      const shouldInitializeTiles = 
-        cluingTiles.length === 0 || 
-        (tilesData && tilesData.length > 0 && 
-         JSON.stringify(cluingTiles.map(t => t.words)) !== tilesDataId);
-      
-      if (shouldInitializeTiles && tilesData && Array.isArray(tilesData)) {
-        // Initialize tiles in four quadrants
-        const initialTiles = tilesData.map((words, index) => {
-          const quadrant = index % 4;
-          const x = boardCenter.x + (quadrant % 2 === 0 ? -1 : 1) * boardRadius / 2;
-          const y = boardCenter.y + (quadrant < 2 ? -1 : 1) * boardRadius / 2;
-          return { x, y, rotation: 0, words: words || [] };
-        });
-        
-        setCluingTiles(initialTiles);
-        setCluingBoardRotation(0); // Reset board rotation
-      }
-    }
-  }, [isCluing, room.players, playerName, cluingTiles, boardCenter.x, boardCenter.y, boardRadius]);
-
   const getCurrentTiles = (): TileData[] => {
     // Common function to get current tiles based on game state
     if (isCluing) {
+      // Spectators can't view cluing phase (each player sees their own tiles)
+      if (isSpectator) {
+        return [];
+      }
+      
       // During cluing phase, use our local state tiles if available
       if (cluingTiles.length > 0) {
         return cluingTiles;
       }
       
       // Fallback to calculating from player data if local state isn't ready
-      const thisPlayer = room.players[playerName];
+      const thisPlayer = room.players[playerName!];
       const tilesData = thisPlayer?.tilesAsClued;
       
       if (!tilesData || !Array.isArray(tilesData)) {
@@ -172,7 +188,7 @@ const Board: React.FC<BoardProps> = ({ roomId, playerName, data, onPlayAgain, on
         return { x, y, rotation: 0, words: words || [] };
       });
     } else {
-      // For guessing phase
+      // For guessing phase (spectators can view)
       if (!room.guessingViewState?.playerName) {
         return [];
       }
@@ -222,7 +238,7 @@ const Board: React.FC<BoardProps> = ({ roomId, playerName, data, onPlayAgain, on
   };
 
   const handleTileMove = (moveTileIndex: number, newTiles: TileData[], boardRotation: number) => {
-    if (isCluing) return;
+    if (isCluing || isSpectator) return;
     
     const newTilesWithDraggingUser = newTiles.map((tile, index) => ({
       ...tile,
@@ -233,7 +249,7 @@ const Board: React.FC<BoardProps> = ({ roomId, playerName, data, onPlayAgain, on
   };
 
   const handleTileRelease = (newTiles: TileData[], boardRotation: number) => {
-    if (isCluing) return;
+    if (isCluing || isSpectator) return;
     
     const newTilesWithoutDraggingUser = newTiles.map((tile) => {
       if (tile.draggingUser === playerName) {
@@ -246,7 +262,7 @@ const Board: React.FC<BoardProps> = ({ roomId, playerName, data, onPlayAgain, on
   };
 
   const handleTileRotate = (index: number) => {
-    if (isCluing) return;
+    if (isCluing || isSpectator) return;
     
     const currentTiles = getCurrentTiles();
     if (!currentTiles[index]) return;
@@ -264,16 +280,16 @@ const Board: React.FC<BoardProps> = ({ roomId, playerName, data, onPlayAgain, on
   };
 
   const handleEdgeInputChange = (index: number, value: string) => {
-    if (room.status === 'guessing') return;
+    if (room.status === 'guessing' || isSpectator) return;
     
     // Direct update to the database
-    const currentClues = [...(room.players[playerName]?.clues || ["","","",""])];
+    const currentClues = [...(room.players[playerName!]?.clues || ["","","",""])];
     currentClues[index] = value;
     
     db.transact([
       tx.room[roomId].merge({
         players: {
-          [playerName]: {
+          [playerName!]: {
             readyToGuess: false,
             clues: currentClues
           }
@@ -390,7 +406,7 @@ const Board: React.FC<BoardProps> = ({ roomId, playerName, data, onPlayAgain, on
   const currentTiles = getCurrentTiles();
   const currentBoardRotation = isCluing ? cluingBoardRotation : (room.guessingViewState?.boardRotation || 0);
   const currentEdgeInputs = isCluing 
-    ? (room.players[playerName]?.clues || ["","","",""])
+    ? (isSpectator ? ["","","",""] : (room.players[playerName!]?.clues || ["","","",""]))
     : (room.guessingViewState?.playerName 
         ? (room.players[room.guessingViewState.playerName]?.clues || ["","","",""]) 
         : ["","","",""]);
@@ -399,6 +415,9 @@ const Board: React.FC<BoardProps> = ({ roomId, playerName, data, onPlayAgain, on
   const showPlayerSelectionMessage = 
     room.status === 'guessing' && 
     (!room.guessingViewState?.playerName || room.guessingViewState.playerName === "");
+
+  // Show spectator message during cluing phase
+  const showSpectatorCluingMessage = isCluing && isSpectator;
 
   // Calculate deck statistics for display
   const calculateDeckStats = () => {
@@ -421,9 +440,14 @@ const Board: React.FC<BoardProps> = ({ roomId, playerName, data, onPlayAgain, on
   return (
     <div className="board-container">
       <div className="board-display-container">
-        {showPlayerSelectionMessage ? (
+        {showSpectatorCluingMessage ? (
           <div className="player-selection-message">
-            <h3>Select a player to begin</h3>
+            <h3>Spectator Mode</h3>
+            <p>Players are currently creating their clues. You'll be able to watch once the guessing phase begins.</p>
+          </div>
+        ) : showPlayerSelectionMessage ? (
+          <div className="player-selection-message">
+            <h3>{isSpectator ? "Spectator Mode - Select a player to view" : "Select a player to begin"}</h3>
             <p>Use the dropdown below to choose whose board to view</p>
           </div>
         ) : (
@@ -441,9 +465,9 @@ const Board: React.FC<BoardProps> = ({ roomId, playerName, data, onPlayAgain, on
         )}
       </div>
       <div className="board-controls">
-        {isCluing ? (
+        {isCluing && !isSpectator ? (
           <>
-            {!room.players[playerName]?.readyToGuess && (
+            {!room.players[playerName!]?.readyToGuess && (
               <select
                 onChange={(e) => {
                   if (e.target.value === 'not-ready') {
@@ -490,7 +514,7 @@ const Board: React.FC<BoardProps> = ({ roomId, playerName, data, onPlayAgain, on
         ) : null}
         
         {/* Action button with dropdown always visible at the end */}
-        <div className="action-container" style={{ flex: isCluing ? 1 : '100%' }}>
+        <div className="action-container" style={{ flex: (isCluing && !isSpectator) ? 1 : '100%' }}>
           <select 
             className="action-dropdown"
             onChange={(e) => {
@@ -516,11 +540,15 @@ const Board: React.FC<BoardProps> = ({ roomId, playerName, data, onPlayAgain, on
                     {name}{room.guessingViewState?.playerName === name ? ' ✓' : ''}
                   </option>
                 ))}
-                <option value="" disabled className="dropdown-disabled">―――――</option>
+                {!isSpectator && <option value="" disabled className="dropdown-disabled">―――――</option>}
               </>
             )}
-            <option value="play-again">Re-deal{room.deckState ? ` (${deckStats.remaining}/${deckStats.total})` : ''}</option>
-            <option value="reset">New Game</option>
+            {!isSpectator && (
+              <>
+                <option value="play-again">Re-deal{room.deckState ? ` (${deckStats.remaining}/${deckStats.total})` : ''}</option>
+                <option value="reset">New Game</option>
+              </>
+            )}
           </select>
         </div>
       </div>
